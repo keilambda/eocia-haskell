@@ -10,6 +10,7 @@ common defaults
   default-extensions:
     BlockArguments
     DerivingStrategies
+    LambdaCase
 
 common warnings
   ghc-options:
