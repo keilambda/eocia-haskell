@@ -57,3 +57,30 @@ interpExp = \case
 
 interpLint :: Program info -> IO P.Int
 interpLint (MkProgram _ e) = interpExp e
+
+peNeg :: Exp -> Exp
+peNeg = \case
+  Int a -> Int (P.negate a)
+  other -> negate other
+
+peMinus :: Exp -> Exp -> Exp
+peMinus a b = case (a, b) of
+  (Int na, Int nb) -> Int (na - nb)
+  _ -> minus a b
+
+pePlus :: Exp -> Exp -> Exp
+pePlus a b = case (a, b) of
+  (Int na, Int nb) -> Int (na + nb)
+  _ -> plus a b
+
+peExp :: Exp -> Exp
+peExp = \case
+  Int a -> Int a
+  Prim Read [] -> read
+  Prim Negate [a] -> peNeg (peExp a)
+  Prim Minus [a, b] -> peMinus (peExp a) (peExp b)
+  Prim Plus [a, b] -> pePlus (peExp a) (peExp b)
+  e -> error ("Invalid expression: " ++ show e)
+
+peLint :: Program info -> Program info
+peLint (MkProgram i e) = MkProgram i (peExp e)
