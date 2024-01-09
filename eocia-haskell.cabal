@@ -19,7 +19,10 @@ common warnings
 
 library
   import:          warnings, defaults
-  exposed-modules: Parser
+  exposed-modules:
+    Interpreter.Lint
+    Parser
+
   hs-source-dirs:  src
   build-depends:   base ^>=4.17.2.1
 
