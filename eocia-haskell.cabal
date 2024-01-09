@@ -1,0 +1,41 @@
+cabal-version: 3.0
+name:          eocia-haskell
+version:       0.0.0.0
+license:       BSD-3-Clause
+license-file:  LICENSE
+build-type:    Simple
+
+common defaults
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    DerivingStrategies
+
+common warnings
+  ghc-options:
+    -Wall -Wextra -Weverything -Wcompat -Wno-implicit-prelude
+    -Wno-unsafe -Wno-missing-safe-haskell-mode
+    -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
+
+library
+  import:          warnings, defaults
+  exposed-modules: Parser
+  hs-source-dirs:  src
+  build-depends:   base ^>=4.17.2.1
+
+executable eocia-haskell
+  import:         warnings, defaults
+  main-is:        Main.hs
+  hs-source-dirs: app
+  build-depends:
+    , base           ^>=4.17.2.1
+    , eocia-haskell
+
+test-suite eocia-haskell-test
+  import:         warnings, defaults
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+    , base           ^>=4.17.2.1
+    , eocia-haskell
