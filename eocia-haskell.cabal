@@ -16,10 +16,7 @@ library
   ghc-options:      -O2
   hs-source-dirs:   src
   default-language: GHC2024
-  exposed-modules:
-    Interpreter.Lint
-    Parser
-
+  exposed-modules:  LInt
   build-depends:    base >=4.7 && <5
 
 executable eocia-haskell
