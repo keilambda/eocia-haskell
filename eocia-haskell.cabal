@@ -5,13 +5,6 @@ license:       BSD-3-Clause
 license-file:  LICENSE
 build-type:    Simple
 
-common defaults
-  default-language:   GHC2021
-  default-extensions:
-    BlockArguments
-    DerivingStrategies
-    LambdaCase
-
 common warnings
   ghc-options:
     -Wall -Wextra -Weverything -Wcompat -Wno-implicit-prelude
@@ -19,27 +12,33 @@ common warnings
     -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
 
 library
-  import:          warnings, defaults
+  import:           warnings
+  ghc-options:      -O2
+  hs-source-dirs:   src
+  default-language: GHC2024
   exposed-modules:
     Interpreter.Lint
     Parser
 
-  hs-source-dirs:  src
-  build-depends:   base ^>=4.17.2.1
+  build-depends:    base >=4.7 && <5
 
 executable eocia-haskell
-  import:         warnings, defaults
-  main-is:        Main.hs
-  hs-source-dirs: app
+  import:           warnings
+  ghc-options:      -O2
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  default-language: GHC2024
   build-depends:
-    , base           ^>=4.17.2.1
+    , base           >=4.7 && <5
     , eocia-haskell
 
 test-suite eocia-haskell-test
-  import:         warnings, defaults
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is:        Main.hs
+  import:           warnings
+  ghc-options:      -O2
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  default-language: GHC2024
+  main-is:          Main.hs
   build-depends:
-    , base           ^>=4.17.2.1
+    , base           >=4.7 && <5
     , eocia-haskell
