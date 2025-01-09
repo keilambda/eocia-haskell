@@ -19,6 +19,7 @@ library
   exposed-modules:
     LInt
     LVar
+    X86
     X86Int
 
   build-depends:
