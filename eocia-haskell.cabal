@@ -30,12 +30,19 @@ executable eocia-haskell
     , eocia-haskell
 
 test-suite eocia-haskell-test
-  import:           warnings
-  ghc-options:      -O2
-  type:             exitcode-stdio-1.0
-  hs-source-dirs:   test
-  default-language: GHC2024
-  main-is:          Main.hs
+  import:             warnings
+  ghc-options:        -O2 -Wno-orphans
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  default-language:   GHC2024
+  main-is:            Driver.hs
+  other-modules:      TestLInt
+  build-tool-depends: tasty-discover:tasty-discover
   build-depends:
-    , base           >=4.7 && <5
+    , base              >=4.7 && <5
     , eocia-haskell
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , QuickCheck
