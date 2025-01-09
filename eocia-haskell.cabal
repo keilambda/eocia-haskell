@@ -27,6 +27,7 @@ library
     , mtl
     , transformers
     , unordered-containers
+    , PyF
 
 executable eocia-haskell
   import:           warnings

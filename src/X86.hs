@@ -1,4 +1,4 @@
-module X86 (Reg (..), Instr (..)) where
+module X86 (Reg (..), InstrF (..)) where
 
 import Data.Kind (Type)
 
@@ -24,21 +24,21 @@ instance Show Reg where
     R14 -> "r14"
     R15 -> "r15"
 
-type role Instr representational
-type Instr :: Type -> Type
-data Instr arg
+type role InstrF representational
+type InstrF :: Type -> Type
+data InstrF arg
   = AddQ arg arg
   | SubQ arg arg
   | NegQ arg
   | MovQ arg arg
   | PushQ arg
   | PopQ arg
-  | CallQ String
+  | CallQ String Int
   | Jmp String
   | Syscall
   | RetQ
 
-instance (Show arg) => Show (Instr arg) where
+instance (Show arg) => Show (InstrF arg) where
   show = \case
     AddQ src dst -> "addq " ++ show src ++ ", " ++ show dst
     SubQ src dst -> "subq " ++ show src ++ ", " ++ show dst
@@ -46,7 +46,7 @@ instance (Show arg) => Show (Instr arg) where
     MovQ src dst -> "movq " ++ show src ++ ", " ++ show dst
     PushQ arg -> "pushq " ++ show arg
     PopQ arg -> "popq " ++ show arg
-    CallQ lbl -> "callq " ++ show lbl
+    CallQ lbl n -> "callq " ++ show lbl ++ ", " ++ show n
     Jmp lbl -> "jmp " ++ show lbl
     Syscall -> "syscall"
     RetQ -> "retq"
