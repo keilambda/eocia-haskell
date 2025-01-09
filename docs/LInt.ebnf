@@ -1,0 +1,9 @@
+type ::= Integer
+
+expr ::= int
+  | (read)
+  | (- expr)
+  | (+ expr expr)
+  | (- expr expr)
+
+LInt ::= expr
