@@ -19,6 +19,7 @@ library
   exposed-modules:
     LInt
     LVar
+    X86Int
 
   build-depends:
     , base  >=4.7 && <5
