@@ -1,0 +1,9 @@
+atom ::= int | var
+
+expr ::= atom | (read) | (- atom) | (+ atom atom) | (- atom atom)
+
+stmt ::= var = expr;
+
+tail ::= return expr; | stmt tail
+
+CVar ::= (label: tail)...

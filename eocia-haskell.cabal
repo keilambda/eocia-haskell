@@ -17,6 +17,7 @@ library
   hs-source-dirs:   src
   default-language: GHC2024
   exposed-modules:
+    CVar
     LInt
     LVar
     X86
