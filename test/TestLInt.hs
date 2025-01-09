@@ -10,7 +10,7 @@ import LInt
 
 instance Arbitrary Expr where
   -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
-  arbitrary = sized $ \n ->
+  arbitrary = sized \n ->
     if n <= 0
       then Lit <$> arbitrary
       else
@@ -30,13 +30,13 @@ checkPE e = do
   ir @?= pr
 
 unit_1 :: Assertion
-unit_1 = checkPE (Prim Add [Lit 10, Prim Neg [Prim Add [Lit 5, Lit 3]]])
+unit_1 = checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
 
 unit_2 :: Assertion
-unit_2 = checkPE (Prim Add [Lit 1, Prim Add [Lit 3, Lit 1]])
+unit_2 = checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
 
 unit_3 :: Assertion
-unit_3 = checkPE (Prim Neg [Prim Add [Lit 3, Prim Neg [Lit 5]]])
+unit_3 = checkPE (neg (add (Lit 3) (neg (Lit 5))))
 
 prop_peCorrect :: Expr -> Property
 prop_peCorrect e = monadicIO do

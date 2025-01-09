@@ -41,8 +41,8 @@ test-suite eocia-haskell-test
   build-depends:
     , base              >=4.7 && <5
     , eocia-haskell
+    , QuickCheck
     , tasty
     , tasty-discover
     , tasty-hunit
     , tasty-quickcheck
-    , QuickCheck
