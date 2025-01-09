@@ -23,7 +23,7 @@ add :: Expr -> Expr -> Expr
 add a b = Prim Add [a, b]
 
 sub :: Expr -> Expr -> Expr
-sub a b = Prim Add [a, b]
+sub a b = Prim Sub [a, b]
 
 leaf :: Expr -> Bool
 leaf = \case

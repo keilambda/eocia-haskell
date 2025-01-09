@@ -1,0 +1,11 @@
+type ::= Integer
+
+expr ::= int
+  | (read)
+  | (- expr)
+  | (+ expr expr)
+  | (- expr expr)
+  | var
+  | (let ([var expr]) expr)
+
+LVar ::= expr

@@ -16,8 +16,15 @@ library
   ghc-options:      -O2
   hs-source-dirs:   src
   default-language: GHC2024
-  exposed-modules:  LInt
-  build-depends:    base >=4.7 && <5
+  exposed-modules:
+    LInt
+    LVar
+
+  build-depends:
+    , base  >=4.7 && <5
+    , mtl
+    , transformers
+    , unordered-containers
 
 executable eocia-haskell
   import:           warnings
