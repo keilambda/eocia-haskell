@@ -93,5 +93,5 @@ peExpr = \case
   Prim Read [] -> read_
   Prim Neg [a] -> peNeg (peExpr a)
   Prim Add [a, b] -> peAdd (peExpr a) (peExpr b)
-  Prim Sub [a, b] -> peAdd (peExpr a) (peExpr b)
+  Prim Sub [a, b] -> peSub (peExpr a) (peExpr b)
   _ -> undefined
