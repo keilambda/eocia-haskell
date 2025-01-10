@@ -5,6 +5,9 @@ license:       BSD-3-Clause
 license-file:  LICENSE
 build-type:    Simple
 
+common defaults
+  default-extensions: BlockArguments
+
 common warnings
   ghc-options:
     -Wall -Wextra -Weverything -Wcompat -Wno-implicit-prelude
@@ -12,7 +15,7 @@ common warnings
     -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
 
 library
-  import:           warnings
+  import:           warnings, defaults
   ghc-options:      -O2
   hs-source-dirs:   src
   default-language: GHC2024
@@ -26,10 +29,10 @@ library
     X86Int
 
   build-depends:
-    , base  >=4.7 && <5
+    , base                  >=4.7 && <5
     , mtl
-    , unordered-containers
     , PyF
+    , unordered-containers
 
 executable eocia-haskell
   import:           warnings
@@ -42,7 +45,7 @@ executable eocia-haskell
     , eocia-haskell
 
 test-suite eocia-haskell-test
-  import:             warnings
+  import:             warnings, defaults
   ghc-options:        -O2 -Wno-orphans
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test

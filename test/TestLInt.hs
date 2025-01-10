@@ -1,5 +1,3 @@
-{-# LANGUAGE BlockArguments #-}
-
 module TestLInt (module TestLInt) where
 
 import Test.QuickCheck.Monadic
