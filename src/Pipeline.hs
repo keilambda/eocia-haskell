@@ -1,18 +1,18 @@
 module Pipeline (module Pipeline) where
 
 import Data.HashMap.Strict (findWithDefault, insert)
-import Data.Unique (hashUnique, newUnique)
 
+import Gensym (MonadGensym (gensym))
 import LVar qualified
 
-passUniquify :: LVar.Expr -> IO LVar.Expr
+passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
 passUniquify = loop mempty
  where
   loop env = \case
     e@(LVar.Lit _) -> pure e
     LVar.Var n -> pure $ LVar.Var (findWithDefault n n env)
     LVar.Let name expr body -> do
-      name' <- (\n -> name ++ "." ++ show n) . hashUnique <$> newUnique
+      name' <- gensym (name ++ ".")
       expr' <- loop env expr
       body' <- loop (insert name name' env) body
       pure $ LVar.Let name' expr' body'
