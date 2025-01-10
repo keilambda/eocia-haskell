@@ -8,7 +8,11 @@ import PyF (fmt)
 
 type Atom :: Type
 data Atom = Lit Int | Var String
-  deriving stock (Show)
+
+instance Show Atom where
+  show = \case
+    Lit n -> show n
+    Var n -> n
 
 type Op :: Type
 data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
@@ -24,7 +28,11 @@ type Expr :: Type
 data Expr
   = Atom Atom
   | Prim Op
-  deriving stock (Show)
+
+instance Show Expr where
+  show = \case
+    Atom a -> show a
+    Prim op -> show op
 
 type Stmt :: Type
 data Stmt = Assign String Expr

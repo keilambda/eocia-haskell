@@ -1,17 +1,30 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module LInt (module LInt) where
 
 import Data.Kind (Type)
 import Data.List (List)
+import PyF (fmt)
 
 type Op :: Type
 data Op = Read | Neg | Add | Sub
-  deriving stock (Show)
+
+instance Show Op where
+  show = \case
+    Read -> "read"
+    Neg -> "-"
+    Add -> "+"
+    Sub -> "-"
 
 type Expr :: Type
 data Expr
   = Lit Int
   | Prim Op (List Expr)
-  deriving stock (Show)
+
+instance Show Expr where
+  show = \case
+    Lit n -> show n
+    Prim op es -> [fmt|({show op} {unwords $ map show es})|]
 
 read_ :: Expr
 read_ = Prim Read []

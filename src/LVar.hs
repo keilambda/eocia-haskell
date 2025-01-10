@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module LVar (module LVar) where
 
 import Control.Monad.Except (ExceptT, MonadError (throwError), runExceptT)
@@ -7,6 +9,8 @@ import Data.HashMap.Strict (HashMap, insert, (!?))
 import Data.Kind (Type)
 import Data.List (List)
 
+import PyF (fmt)
+
 import LInt (Op (..))
 
 type Expr :: Type
@@ -15,7 +19,13 @@ data Expr
   | Var String
   | Let String Expr Expr
   | Prim Op (List Expr)
-  deriving stock (Show)
+
+instance Show Expr where
+  show = \case
+    Lit n -> show n
+    Var n -> n
+    Let n e body -> [fmt|(let ([{n} {show e}]) {show body})|]
+    Prim op es -> [fmt|({show op} {unwords $ map show es})|]
 
 read_ :: Expr
 read_ = Prim Read []
