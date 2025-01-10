@@ -18,6 +18,7 @@ library
   default-language: GHC2024
   exposed-modules:
     CVar
+    Gensym
     LInt
     LVar
     Pipeline
