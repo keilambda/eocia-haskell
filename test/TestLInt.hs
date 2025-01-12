@@ -8,7 +8,7 @@ import Test.Tasty.HUnit hiding (assert)
 import Test.Tasty.QuickCheck
 
 import Core (renderText)
-import LInt
+import Stage.LInt
 
 instance Arbitrary Expr where
   -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
