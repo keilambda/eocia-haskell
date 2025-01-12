@@ -23,7 +23,7 @@ data Expr
   | Var Name
   | Let Name Expr Expr
   | Prim Op (List Expr)
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Expr where
   pretty = \case
@@ -52,7 +52,7 @@ data LVarErr
   = UnboundVariable Name
   | BadSpecialForm Expr
   | InvalidReadInput Text
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 interpExpr :: Env -> Expr -> ExceptT LVarErr IO Int
 interpExpr env = \case

@@ -7,7 +7,7 @@ import Prettyprinter
 
 type Op :: Type
 data Op = Read | Neg | Add | Sub
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Op where
   pretty = \case
