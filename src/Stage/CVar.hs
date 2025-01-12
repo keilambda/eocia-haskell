@@ -22,10 +22,10 @@ data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
 
 instance Pretty Op where
   pretty = \case
-    Read -> parens $ pretty "read"
-    Neg a -> parens $ pretty "-" <+> pretty a
-    Add a b -> parens $ pretty "+" <+> pretty a <+> pretty b
-    Sub a b -> parens $ pretty "-" <+> pretty a <+> pretty b
+    Read -> pretty "read"
+    Neg a -> pretty "-" <+> pretty a
+    Add a b -> pretty a <+> pretty "+" <+> pretty b
+    Sub a b -> pretty a <+> pretty "-" <+> pretty b
 
 type Expr :: Type
 data Expr
