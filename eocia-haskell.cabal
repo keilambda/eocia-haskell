@@ -51,14 +51,12 @@ test-suite eocia-haskell-test
   ghc-options:        -O2 -Wno-orphans
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
-  main-is:            Driver.hs
+  main-is:            Main.hs
   other-modules:      TestLInt
-  build-tool-depends: tasty-discover:tasty-discover
   build-depends:
     , base              >=4.7 && <5
     , eocia-haskell
     , QuickCheck
     , tasty
-    , tasty-discover
     , tasty-hunit
     , tasty-quickcheck

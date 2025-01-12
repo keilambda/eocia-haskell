@@ -31,25 +31,26 @@ checkPE e = do
   pr <- interpExpr (peExpr e)
   ir @?= pr
 
-unit_1 :: Assertion
-unit_1 = checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
+tests :: TestTree
+tests = testGroup "LInt" [groupPartialEvaluation, groupPretty]
 
-unit_2 :: Assertion
-unit_2 = checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
-
-unit_3 :: Assertion
-unit_3 = checkPE (neg (add (Lit 3) (neg (Lit 5))))
-
-prop_peCorrect :: Expr -> Property
-prop_peCorrect e = monadicIO do
-  ir <- run (interpExpr e)
-  pr <- run (interpExpr (peExpr e))
-  assert (ir == pr)
-
-test_pretty :: TestTree
-test_pretty =
+groupPartialEvaluation :: TestTree
+groupPartialEvaluation =
   testGroup
-    "LInt pretty printer"
+    "Partial evaluation"
+    [ testCase "1" $ checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
+    , testCase "2" $ checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
+    , testCase "3" $ checkPE (neg (add (Lit 3) (neg (Lit 5))))
+    , testProperty "partial evaluation does not change behavior" $ property \e -> monadicIO do
+        ir <- run (interpExpr e)
+        pr <- run (interpExpr (peExpr e))
+        assert (ir == pr)
+    ]
+
+groupPretty :: TestTree
+groupPretty =
+  testGroup
+    "Pretty printer"
     [ testCase "lit" $
         "42" @?= (renderText (Lit 42))
     , testCase "read" $
