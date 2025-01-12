@@ -21,7 +21,7 @@ library
   hs-source-dirs:  src
   exposed-modules:
     Core
-    Gensym
+    Core.Gensym
     Pipeline
     Stage.CVar
     Stage.LInt

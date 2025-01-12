@@ -2,6 +2,7 @@ module Core
   ( Name (MkName, getName)
   , Label (MkLabel, getLabel)
   , renderText
+  , module Core.Gensym
   )
 where
 
@@ -11,6 +12,8 @@ import Data.Text (Text)
 
 import Prettyprinter (Pretty (pretty), defaultLayoutOptions, layoutPretty)
 import Prettyprinter.Render.Text (renderStrict)
+
+import Core.Gensym
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}

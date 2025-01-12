@@ -4,8 +4,7 @@ module Pipeline (module Pipeline) where
 
 import Data.HashMap.Strict (findWithDefault, insert)
 
-import Core (Name (MkName, getName))
-import Gensym (MonadGensym (gensym))
+import Core (MonadGensym (gensym), Name (MkName, getName))
 import Stage.LVar qualified as LVar
 
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr

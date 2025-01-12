@@ -1,4 +1,4 @@
-module Gensym (MonadGensym (gensym)) where
+module Core.Gensym (MonadGensym (gensym)) where
 
 import Control.Monad.State (State, get, modify)
 import Data.Kind (Constraint, Type)
