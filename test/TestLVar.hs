@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-
-module TestLVar (module TestLVar) where
+module TestLVar (tests) where
 
 import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
@@ -78,8 +76,8 @@ groupPretty =
   testGroup
     "Pretty printer"
     [ testCase "let expression" do
-        "(let [x 42] x)" @?= renderText (Let "x" (Lit 42) (Var "x"))
+        renderText (Let "x" (Lit 42) (Var "x")) @?= "(let [x 42] x)"
     , testCase "complex let expression" do
         let expr = Let "x" (add (Lit 1) (Lit 2)) (Let "y" (sub (Var "x") (Lit 1)) (add (Var "x") (Var "y")))
-        "(let [x (+ 1 2)] (let [y (- x 1)] (+ x y)))" @?= renderText expr
+        renderText expr @?= "(let [x (+ 1 2)] (let [y (- x 1)] (+ x y)))"
     ]

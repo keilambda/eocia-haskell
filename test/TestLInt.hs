@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module TestLInt (tests) where
 
 import Test.Tasty
@@ -28,7 +26,7 @@ checkPE :: Expr -> Assertion
 checkPE e = do
   ir <- interpExpr e
   pr <- interpExpr (peExpr e)
-  ir @?= pr
+  pr @?= ir
 
 tests :: TestTree
 tests = testGroup "LInt" [groupPartialEvaluation, groupPretty]
@@ -52,15 +50,15 @@ groupPretty =
   testGroup
     "Pretty printer"
     [ testCase "lit" do
-        "42" @?= (renderText (Lit 42))
+        renderText (Lit 42) @?= "42"
     , testCase "read" do
-        "(read)" @?= (renderText read_)
+        renderText read_ @?= "(read)"
     , testCase "neg" do
-        "(- 42)" @?= (renderText (neg (Lit 42)))
+        renderText (neg (Lit 42)) @?= "(- 42)"
     , testCase "add" do
-        "(+ 32 10)" @?= (renderText (add (Lit 32) (Lit 10)))
+        renderText (add (Lit 32) (Lit 10)) @?= "(+ 32 10)"
     , testCase "sub" do
-        "(- 32 10)" @?= (renderText (sub (Lit 32) (Lit 10)))
+        renderText (sub (Lit 32) (Lit 10)) @?= "(- 32 10)"
     , testCase "arith" do
-        "(+ (- 42 10) (- (- 10)))" @?= (renderText (add (sub (Lit 42) (Lit 10)) (neg (neg (Lit 10)))))
+        renderText (add (sub (Lit 42) (Lit 10)) (neg (neg (Lit 10)))) @?= "(+ (- 42 10) (- (- 10)))"
     ]

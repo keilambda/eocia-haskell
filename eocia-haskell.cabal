@@ -47,11 +47,12 @@ executable eocia-haskell
     , eocia-haskell
 
 test-suite eocia-haskell-test
-  import:         warnings, defaults
-  ghc-options:    -O2 -Wno-orphans
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is:        Main.hs
+  import:             warnings, defaults
+  default-extensions: OverloadedStrings
+  ghc-options:        -O2 -Wno-orphans
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
   other-modules:
     Arbitrary
     TestLInt
