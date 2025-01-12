@@ -33,7 +33,7 @@ library
     , base                  >=4.7   && <5
     , hashable
     , mtl
-    , PyF
+    , prettyprinter
     , text                  ==2.1.2
     , unordered-containers
 

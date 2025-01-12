@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module LVar (module LVar) where
 
@@ -9,13 +8,13 @@ import Control.Monad.IO.Class (liftIO)
 import Data.HashMap.Strict (HashMap, insert, (!?))
 import Data.Kind (Type)
 import Data.List (List)
-import Data.Text (Text)
+import Data.Text (Text, pattern Empty)
 import Data.Text.IO qualified as TIO
 import Data.Text.Read (decimal)
 
-import PyF (fmt)
+import Prettyprinter
 
-import Core (Name (MkName))
+import Core (Name)
 import LInt (Op (..))
 
 type Expr :: Type
@@ -24,13 +23,14 @@ data Expr
   | Var Name
   | Let Name Expr Expr
   | Prim Op (List Expr)
+  deriving stock (Show)
 
-instance Show Expr where
-  show = \case
-    Lit n -> show n
-    Var (MkName n) -> show n
-    Let (MkName n) e body -> [fmt|(let ([{n} {show e}]) {show body})|]
-    Prim op es -> [fmt|({show op} {unwords $ map show es})|]
+instance Pretty Expr where
+  pretty = \case
+    Lit n -> pretty n
+    Var n -> pretty n
+    Let n e body -> parens $ pretty "let" <+> brackets (pretty n <+> pretty e) <+> pretty body
+    Prim op es -> parens $ pretty op <+> hsep (map pretty es)
 
 read_ :: Expr
 read_ = Prim Read []
@@ -65,7 +65,7 @@ interpExpr env = \case
     (Read, []) -> do
       str <- liftIO TIO.getLine
       case decimal str of
-        Right (r, "") -> pure r
+        Right (r, Empty) -> pure r
         _ -> throwError (InvalidReadInput str)
     (Neg, [a]) -> negate <$> (interpExpr env a)
     (Add, [a, b]) -> (+) <$> (interpExpr env a) <*> (interpExpr env b)

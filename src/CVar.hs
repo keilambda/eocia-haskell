@@ -1,54 +1,58 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 module CVar (module CVar) where
 
 import Data.HashMap.Strict (HashMap)
 import Data.Kind (Type)
-import PyF (fmt)
+
+import Prettyprinter
 
 import Core (Name (MkName))
 
 type Atom :: Type
 data Atom = Lit Int | Var Name
+  deriving stock (Show)
 
-instance Show Atom where
-  show = \case
-    Lit n -> show n
-    Var (MkName n) -> show n
+instance Pretty Atom where
+  pretty = \case
+    Lit n -> pretty n
+    Var n -> pretty n
 
 type Op :: Type
 data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
+  deriving stock (Show)
 
-instance Show Op where
-  show = \case
-    Read -> "(read)"
-    Neg a -> [fmt|(- {show a})|]
-    Add a b -> [fmt|(+ {show a} {show b})|]
-    Sub a b -> [fmt|(- {show a} {show b})|]
+instance Pretty Op where
+  pretty = \case
+    Read -> parens $ pretty "read"
+    Neg a -> parens $ pretty "-" <+> pretty a
+    Add a b -> parens $ pretty "+" <+> pretty a <+> pretty b
+    Sub a b -> parens $ pretty "-" <+> pretty a <+> pretty b
 
 type Expr :: Type
 data Expr
   = Atom Atom
   | Prim Op
+  deriving stock (Show)
 
-instance Show Expr where
-  show = \case
-    Atom a -> show a
-    Prim op -> show op
+instance Pretty Expr where
+  pretty = \case
+    Atom a -> pretty a
+    Prim op -> pretty op
 
 type Stmt :: Type
 data Stmt = Assign Name Expr
+  deriving stock (Show)
 
-instance Show Stmt where
-  show (Assign (MkName n) e) = [fmt|{n} = {show e}|]
+instance Pretty Stmt where
+  pretty (Assign (MkName n) e) = pretty n <+> equals <+> pretty e
 
 type Tail :: Type
 data Tail = Return Expr | Seq Stmt Tail
+  deriving stock (Show)
 
-instance Show Tail where
-  show = \case
-    Return e -> [fmt|return {show e};|]
-    Seq s t -> [fmt|{show s}\n{show t}|]
+instance Pretty Tail where
+  pretty = \case
+    Return e -> pretty "return" <+> pretty e <> semi
+    Seq s t -> pretty s <> hardline <> pretty t
 
 type Program :: Type
 data Program = MkProgram {env :: HashMap Name Expr, blocks :: HashMap Name Tail}

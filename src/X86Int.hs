@@ -1,24 +1,25 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 module X86Int (module X86Int) where
 
-import Data.HashMap.Strict (HashMap, foldlWithKey')
+import Data.HashMap.Strict (HashMap, toList)
 import Data.Kind (Type)
 import Data.List (List)
-import GHC.Records (HasField (getField))
-import PyF (fmt)
 
-import Core (Label (getLabel), Name)
+import Prettyprinter
+
+import GHC.Records (HasField (getField))
+
+import Core (Label, Name)
 import X86 (InstrF, Reg)
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg
+  deriving stock (Show)
 
-instance Show Arg where
-  show = \case
-    Imm n -> "$" ++ show n
-    Reg r -> "%" ++ show r
-    Deref n r -> show n ++ "(%" ++ show r ++ ")"
+instance Pretty Arg where
+  pretty = \case
+    Imm n -> pretty "$" <> pretty n
+    Reg r -> pretty "%" <> pretty r
+    Deref n r -> pretty n <> parens (pretty "%" <> pretty r)
 
 type Instr :: Type
 type Instr = InstrF Arg
@@ -31,14 +32,17 @@ instance HasField "size" Frame Int where
 
 type Block :: Type
 newtype Block = MkBlock (List Instr)
+  deriving stock (Show)
 
-instance Show Block where
-  show (MkBlock xs) = foldl' (\acc x -> [fmt|{acc}\t{show x}\n|]) mempty xs
+instance Pretty Block where
+  pretty (MkBlock xs) = vsep (map (align . pretty) xs)
 
 type Program :: Type
 data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
+  deriving stock (Show)
 
-instance Show Program where
-  show MkProgram{globl, blocks} = [fmt|.globl {getLabel globl}\n{body}|]
+instance Pretty Program where
+  pretty MkProgram{globl, blocks} =
+    pretty ".globl" <+> pretty globl <> hardline <> vsep (map ln (toList blocks))
    where
-    body = foldlWithKey' (\acc lbl block -> [fmt|{acc}{getLabel lbl}:\n{show block}|]) mempty blocks
+    ln (lbl, block) = pretty lbl <> colon <> line <> indent 4 (pretty block)
