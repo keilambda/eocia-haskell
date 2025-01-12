@@ -25,6 +25,7 @@ data Expr
 instance Pretty Expr where
   pretty = \case
     Lit n -> pretty n
+    Prim op [] -> parens $ pretty op
     Prim op es -> parens $ pretty op <+> hsep (map pretty es)
 
 read_ :: Expr
