@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module TestLInt (module TestLInt) where
+module TestLInt (tests) where
 
 import Test.QuickCheck.Monadic
 import Test.Tasty
@@ -38,9 +38,10 @@ groupPartialEvaluation :: TestTree
 groupPartialEvaluation =
   testGroup
     "Partial evaluation"
-    [ testCase "1" $ checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
-    , testCase "2" $ checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
-    , testCase "3" $ checkPE (neg (add (Lit 3) (neg (Lit 5))))
+    [ testCase "simple arithmetic" do
+        checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
+        checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
+        checkPE (neg (add (Lit 3) (neg (Lit 5))))
     , testProperty "partial evaluation does not change behavior" $ property \e -> monadicIO do
         ir <- run (interpExpr e)
         pr <- run (interpExpr (peExpr e))
@@ -51,16 +52,16 @@ groupPretty :: TestTree
 groupPretty =
   testGroup
     "Pretty printer"
-    [ testCase "lit" $
+    [ testCase "lit" do
         "42" @?= (renderText (Lit 42))
-    , testCase "read" $
+    , testCase "read" do
         "(read)" @?= (renderText read_)
-    , testCase "neg" $
+    , testCase "neg" do
         "(- 42)" @?= (renderText (neg (Lit 42)))
-    , testCase "add" $
+    , testCase "add" do
         "(+ 32 10)" @?= (renderText (add (Lit 32) (Lit 10)))
-    , testCase "sub" $
+    , testCase "sub" do
         "(- 32 10)" @?= (renderText (sub (Lit 32) (Lit 10)))
-    , testCase "arith" $
+    , testCase "arith" do
         "(+ (- 42 10) (- (- 10)))" @?= (renderText (add (sub (Lit 42) (Lit 10)) (neg (neg (Lit 10)))))
     ]
