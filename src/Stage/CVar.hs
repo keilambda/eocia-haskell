@@ -43,7 +43,7 @@ data Stmt = Assign Name Expr
   deriving stock (Show)
 
 instance Pretty Stmt where
-  pretty (Assign (MkName n) e) = pretty n <+> equals <+> pretty e
+  pretty (Assign (MkName n) e) = pretty n <+> equals <+> pretty e <> semi
 
 type Tail :: Type
 data Tail = Return Expr | Seq Stmt Tail
