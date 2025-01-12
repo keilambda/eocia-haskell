@@ -1,6 +1,7 @@
 module Core
   ( Name (MkName, getName)
   , Label (MkLabel, getLabel)
+  , renderText
   )
 where
 
@@ -8,7 +9,8 @@ import Data.Hashable (Hashable)
 import Data.Kind (Type)
 import Data.Text (Text)
 
-import Prettyprinter (Pretty (pretty))
+import Prettyprinter (Pretty (pretty), defaultLayoutOptions, layoutPretty)
+import Prettyprinter.Render.Text (renderStrict)
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}
@@ -25,3 +27,6 @@ newtype Label = MkLabel {getLabel :: Text}
 
 instance Pretty Label where
   pretty (MkLabel t) = pretty t
+
+renderText :: (Pretty a) => a -> Text
+renderText = renderStrict . layoutPretty defaultLayoutOptions . pretty
