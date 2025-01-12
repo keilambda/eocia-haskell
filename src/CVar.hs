@@ -6,13 +6,15 @@ import Data.HashMap.Strict (HashMap)
 import Data.Kind (Type)
 import PyF (fmt)
 
+import Core (Name (MkName))
+
 type Atom :: Type
-data Atom = Lit Int | Var String
+data Atom = Lit Int | Var Name
 
 instance Show Atom where
   show = \case
     Lit n -> show n
-    Var n -> n
+    Var (MkName n) -> n
 
 type Op :: Type
 data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
@@ -35,10 +37,10 @@ instance Show Expr where
     Prim op -> show op
 
 type Stmt :: Type
-data Stmt = Assign String Expr
+data Stmt = Assign Name Expr
 
 instance Show Stmt where
-  show (Assign n e) = [fmt|{n} = {show e}|]
+  show (Assign (MkName n) e) = [fmt|{n} = {show e}|]
 
 type Tail :: Type
 data Tail = Return Expr | Seq Stmt Tail
@@ -49,4 +51,4 @@ instance Show Tail where
     Seq s t -> [fmt|{show s}\n{show t}|]
 
 type Program :: Type
-data Program = MkProgram {env :: HashMap String Expr, blocks :: HashMap String Tail}
+data Program = MkProgram {env :: HashMap Name Expr, blocks :: HashMap Name Tail}

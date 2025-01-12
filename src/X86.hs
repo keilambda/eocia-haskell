@@ -2,6 +2,8 @@ module X86 (Reg (..), InstrF (..)) where
 
 import Data.Kind (Type)
 
+import Core (Label (MkLabel))
+
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
 
@@ -33,8 +35,8 @@ data InstrF arg
   | MovQ arg arg
   | PushQ arg
   | PopQ arg
-  | CallQ String Int
-  | Jmp String
+  | CallQ Label Int
+  | Jmp Label
   | Syscall
   | RetQ
 
@@ -46,7 +48,7 @@ instance (Show arg) => Show (InstrF arg) where
     MovQ src dst -> "movq " ++ show src ++ ", " ++ show dst
     PushQ arg -> "pushq " ++ show arg
     PopQ arg -> "popq " ++ show arg
-    CallQ lbl n -> "callq " ++ show lbl ++ ", " ++ show n
-    Jmp lbl -> "jmp " ++ show lbl
+    CallQ (MkLabel lbl) n -> "callq " ++ lbl ++ ", " ++ show n
+    Jmp (MkLabel lbl) -> "jmp " ++ lbl
     Syscall -> "syscall"
     RetQ -> "retq"

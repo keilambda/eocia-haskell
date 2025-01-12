@@ -13,20 +13,21 @@ import PyF (fmt)
 
 import Text.Read (readMaybe)
 
+import Core (Name (MkName))
 import LInt (Op (..))
 
 type Expr :: Type
 data Expr
   = Lit Int
-  | Var String
-  | Let String Expr Expr
+  | Var Name
+  | Let Name Expr Expr
   | Prim Op (List Expr)
 
 instance Show Expr where
   show = \case
     Lit n -> show n
-    Var n -> n
-    Let n e body -> [fmt|(let ([{n} {show e}]) {show body})|]
+    Var (MkName n) -> n
+    Let (MkName n) e body -> [fmt|(let ([{n} {show e}]) {show body})|]
     Prim op es -> [fmt|({show op} {unwords $ map show es})|]
 
 read_ :: Expr
@@ -42,11 +43,11 @@ sub :: Expr -> Expr -> Expr
 sub a b = Prim Sub [a, b]
 
 type Env :: Type
-type Env = HashMap String Expr
+type Env = HashMap Name Expr
 
 type LVarErr :: Type
 data LVarErr
-  = UnboundVariable String
+  = UnboundVariable Name
   | BadSpecialForm Expr
   | InvalidReadInput String
   deriving stock (Show)

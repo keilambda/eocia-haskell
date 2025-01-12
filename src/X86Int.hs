@@ -8,7 +8,8 @@ import Data.List (List)
 import GHC.Records (HasField (getField))
 import PyF (fmt)
 
-import X86
+import Core (Label (getLabel), Name)
+import X86 (InstrF, Reg)
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg
@@ -23,7 +24,7 @@ type Instr :: Type
 type Instr = InstrF Arg
 
 type Frame :: Type
-data Frame = MkFrame {env :: HashMap String Arg, offset :: Int}
+data Frame = MkFrame {env :: HashMap Name Arg, offset :: Int}
 
 instance HasField "size" Frame Int where
   getField MkFrame{offset} = let n = negate offset in (n `mod` 16) + n
@@ -35,9 +36,9 @@ instance Show Block where
   show (MkBlock xs) = foldl' (\acc x -> [fmt|{acc}\t{show x}\n|]) mempty xs
 
 type Program :: Type
-data Program = MkProgram {globl :: String, blocks :: HashMap String Block}
+data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
 
 instance Show Program where
-  show MkProgram{globl, blocks} = [fmt|.globl {globl}\n{body}|]
+  show MkProgram{globl, blocks} = [fmt|.globl {getLabel globl}\n{body}|]
    where
-    body = foldlWithKey' (\acc lbl block -> [fmt|{acc}{lbl}:\n{show block}|]) mempty blocks
+    body = foldlWithKey' (\acc lbl block -> [fmt|{acc}{getLabel lbl}:\n{show block}|]) mempty blocks

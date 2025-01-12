@@ -20,6 +20,7 @@ library
   hs-source-dirs:   src
   default-language: GHC2024
   exposed-modules:
+    Core
     CVar
     Gensym
     LInt
@@ -30,6 +31,7 @@ library
 
   build-depends:
     , base                  >=4.7 && <5
+    , hashable
     , mtl
     , PyF
     , unordered-containers
