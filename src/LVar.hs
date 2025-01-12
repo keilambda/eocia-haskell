@@ -11,6 +11,8 @@ import Data.List (List)
 
 import PyF (fmt)
 
+import Text.Read (readMaybe)
+
 import LInt (Op (..))
 
 type Expr :: Type
@@ -46,15 +48,20 @@ type LVarErr :: Type
 data LVarErr
   = UnboundVariable String
   | BadSpecialForm Expr
+  | InvalidReadInput String
   deriving stock (Show)
 
 interpExpr :: Env -> Expr -> ExceptT LVarErr IO Int
 interpExpr env = \case
   Lit n -> pure n
   Var n -> maybe (throwError (UnboundVariable n)) (interpExpr env) (env !? n)
-  Let n e body -> interpExpr (insert n e env) body
+  Let n e body -> do
+    e' <- interpExpr env e
+    interpExpr (insert n (Lit e') env) body
   s@(Prim n xs) -> case (n, xs) of
-    (Read, []) -> read <$> liftIO getLine
+    (Read, []) -> do
+      str <- liftIO getLine
+      maybe (throwError (InvalidReadInput str)) pure (readMaybe str)
     (Neg, [a]) -> negate <$> (interpExpr env a)
     (Add, [a, b]) -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
     (Sub, [a, b]) -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
