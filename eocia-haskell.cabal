@@ -52,11 +52,15 @@ test-suite eocia-haskell-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Main.hs
-  other-modules:  TestLInt
+  other-modules:
+    Arbitrary
+    TestLInt
+
   build-depends:
-    , base              >=4.7 && <5
+    , base              >=4.7   && <5
     , eocia-haskell
     , QuickCheck
     , tasty
     , tasty-hunit
     , tasty-quickcheck
+    , text              ==2.1.2
