@@ -1,9 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module TestLInt (module TestLInt) where
 
 import Test.QuickCheck.Monadic
+import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
 import Test.Tasty.QuickCheck
 
+import Core (renderText)
 import LInt
 
 instance Arbitrary Expr where
@@ -41,3 +45,21 @@ prop_peCorrect e = monadicIO do
   ir <- run (interpExpr e)
   pr <- run (interpExpr (peExpr e))
   assert (ir == pr)
+
+test_pretty :: TestTree
+test_pretty =
+  testGroup
+    "LInt pretty printer"
+    [ testCase "lit" $
+        "42" @?= (renderText (Lit 42))
+    , testCase "read" $
+        "(read)" @?= (renderText read_)
+    , testCase "neg" $
+        "(- 42)" @?= (renderText (neg (Lit 42)))
+    , testCase "add" $
+        "(+ 32 10)" @?= (renderText (add (Lit 32) (Lit 10)))
+    , testCase "sub" $
+        "(- 32 10)" @?= (renderText (sub (Lit 32) (Lit 10)))
+    , testCase "arith" $
+        "(+ (- 42 10) (- (- 10)))" @?= (renderText (add (sub (Lit 42) (Lit 10)) (neg (neg (Lit 10)))))
+    ]
