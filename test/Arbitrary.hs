@@ -2,7 +2,7 @@ module Arbitrary () where
 
 import Data.Text (pack)
 
-import Test.QuickCheck
+import Test.Tasty.QuickCheck
 
 import Core (Label (MkLabel), Name (MkName))
 

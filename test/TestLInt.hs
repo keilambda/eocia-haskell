@@ -2,7 +2,6 @@
 
 module TestLInt (tests) where
 
-import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
 import Test.Tasty.QuickCheck
@@ -42,10 +41,10 @@ groupPartialEvaluation =
         checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
         checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
         checkPE (neg (add (Lit 3) (neg (Lit 5))))
-    , testProperty "partial evaluation does not change behavior" $ property \e -> monadicIO do
-        ir <- run (interpExpr e)
-        pr <- run (interpExpr (peExpr e))
-        assert (ir == pr)
+    , testProperty "partial evaluation does not change behavior" $ property \e -> ioProperty do
+        ir <- interpExpr e
+        pr <- interpExpr (peExpr e)
+        pure (ir == pr)
     ]
 
 groupPretty :: TestTree
