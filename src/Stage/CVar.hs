@@ -1,4 +1,4 @@
-module CVar (module CVar) where
+module Stage.CVar (module Stage.CVar) where
 
 import Data.HashMap.Strict (HashMap)
 import Data.Kind (Type)

@@ -1,4 +1,4 @@
-module LInt (module LInt) where
+module Stage.LInt (module Stage.LInt) where
 
 import Data.Kind (Type)
 import Data.List (List)

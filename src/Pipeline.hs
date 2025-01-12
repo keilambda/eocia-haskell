@@ -6,7 +6,7 @@ import Data.HashMap.Strict (findWithDefault, insert)
 
 import Core (Name (MkName, getName))
 import Gensym (MonadGensym (gensym))
-import LVar qualified
+import Stage.LVar qualified as LVar
 
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
 passUniquify = loop mempty

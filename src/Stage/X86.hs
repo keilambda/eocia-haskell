@@ -1,4 +1,4 @@
-module X86 (Reg (..), InstrF (..)) where
+module Stage.X86 (Reg (..), InstrF (..)) where
 
 import Data.Kind (Type)
 

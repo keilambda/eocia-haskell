@@ -21,13 +21,13 @@ library
   hs-source-dirs:  src
   exposed-modules:
     Core
-    CVar
     Gensym
-    LInt
-    LVar
     Pipeline
-    X86
-    X86Int
+    Stage.CVar
+    Stage.LInt
+    Stage.LVar
+    Stage.X86
+    Stage.X86Int
 
   build-depends:
     , base                  >=4.7   && <5
@@ -47,12 +47,12 @@ executable eocia-haskell
     , eocia-haskell
 
 test-suite eocia-haskell-test
-  import:             warnings, defaults
-  ghc-options:        -O2 -Wno-orphans
-  type:               exitcode-stdio-1.0
-  hs-source-dirs:     test
-  main-is:            Main.hs
-  other-modules:      TestLInt
+  import:         warnings, defaults
+  ghc-options:    -O2 -Wno-orphans
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:  TestLInt
   build-depends:
     , base              >=4.7 && <5
     , eocia-haskell

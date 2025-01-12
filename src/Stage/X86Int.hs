@@ -1,4 +1,4 @@
-module X86Int (module X86Int) where
+module Stage.X86Int (module Stage.X86Int) where
 
 import Data.HashMap.Strict (HashMap, toList)
 import Data.Kind (Type)
@@ -9,7 +9,7 @@ import Prettyprinter
 import GHC.Records (HasField (getField))
 
 import Core (Label, Name)
-import X86 (InstrF, Reg)
+import Stage.X86 (InstrF, Reg)
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg

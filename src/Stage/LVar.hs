@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module LVar (module LVar) where
+module Stage.LVar (module Stage.LVar) where
 
 import Control.Monad.Except (ExceptT, MonadError (throwError), runExceptT)
 import Control.Monad.IO.Class (liftIO)
@@ -15,7 +15,7 @@ import Data.Text.Read (decimal)
 import Prettyprinter
 
 import Core (Name)
-import LInt (Op (..))
+import Stage.LInt (Op (..))
 
 type Expr :: Type
 data Expr
