@@ -6,6 +6,7 @@ import Test.Tasty (TestTree, defaultMain, testGroup)
 
 import TestLInt qualified
 import TestLVar qualified
+import TestCVar qualified
 
 main :: IO ()
 main = protectStdoutBuffering $ defaultMain tests
@@ -13,4 +14,4 @@ main = protectStdoutBuffering $ defaultMain tests
   protectStdoutBuffering act = bracket (hGetBuffering stdout) (hSetBuffering stdout) (const act)
 
 tests :: TestTree
-tests = testGroup "Tests" [TestLInt.tests, TestLVar.tests]
+tests = testGroup "Tests" [TestLInt.tests, TestLVar.tests, TestCVar.tests]

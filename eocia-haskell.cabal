@@ -55,6 +55,7 @@ test-suite eocia-haskell-test
   main-is:            Main.hs
   other-modules:
     Arbitrary
+    TestCVar
     TestLInt
     TestLVar
 
