@@ -6,6 +6,7 @@ license-file:  LICENSE
 build-type:    Simple
 
 common defaults
+  default-language:   GHC2024
   default-extensions: BlockArguments
 
 common warnings
@@ -15,10 +16,9 @@ common warnings
     -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
 
 library
-  import:           warnings, defaults
-  ghc-options:      -O2
-  hs-source-dirs:   src
-  default-language: GHC2024
+  import:          warnings, defaults
+  ghc-options:     -O2
+  hs-source-dirs:  src
   exposed-modules:
     Core
     CVar
@@ -38,11 +38,10 @@ library
     , unordered-containers
 
 executable eocia-haskell
-  import:           warnings
-  ghc-options:      -O2
-  hs-source-dirs:   app
-  main-is:          Main.hs
-  default-language: GHC2024
+  import:         warnings, defaults
+  ghc-options:    -O2
+  hs-source-dirs: app
+  main-is:        Main.hs
   build-depends:
     , base           >=4.7 && <5
     , eocia-haskell
@@ -52,7 +51,6 @@ test-suite eocia-haskell-test
   ghc-options:        -O2 -Wno-orphans
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
-  default-language:   GHC2024
   main-is:            Driver.hs
   other-modules:      TestLInt
   build-tool-depends: tasty-discover:tasty-discover
