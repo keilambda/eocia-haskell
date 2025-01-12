@@ -48,7 +48,7 @@ instance (Show arg) => Show (InstrF arg) where
     MovQ src dst -> "movq " ++ show src ++ ", " ++ show dst
     PushQ arg -> "pushq " ++ show arg
     PopQ arg -> "popq " ++ show arg
-    CallQ (MkLabel lbl) n -> "callq " ++ lbl ++ ", " ++ show n
-    Jmp (MkLabel lbl) -> "jmp " ++ lbl
+    CallQ (MkLabel lbl) n -> "callq " ++ show lbl ++ ", " ++ show n
+    Jmp (MkLabel lbl) -> "jmp " ++ show lbl
     Syscall -> "syscall"
     RetQ -> "retq"

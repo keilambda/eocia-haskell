@@ -14,7 +14,7 @@ data Atom = Lit Int | Var Name
 instance Show Atom where
   show = \case
     Lit n -> show n
-    Var (MkName n) -> n
+    Var (MkName n) -> show n
 
 type Op :: Type
 data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
