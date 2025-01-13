@@ -2,28 +2,11 @@ module TestLVar (tests) where
 
 import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
-import Test.Tasty.QuickCheck
 
 import Arbitrary ()
 import Core (renderText)
 import Stage.LInt (Op (..))
 import Stage.LVar
-
-instance Arbitrary Expr where
-  arbitrary = sized \n ->
-    if n <= 0
-      then oneof [Lit <$> arbitrary, Var <$> arbitrary]
-      else
-        oneof
-          [ Lit <$> arbitrary
-          , Var <$> arbitrary
-          , Let <$> arbitrary <*> resize (n `div` 2) arbitrary <*> resize (n `div` 2) arbitrary
-          , neg <$> resize (n `div` 2) arbitrary
-          , do
-              a <- resize (n `div` 2) arbitrary
-              b <- resize (n `div` 2) arbitrary
-              elements [add a b, sub a b]
-          ]
 
 shouldEvalTo :: Expr -> Either LVarErr Int -> IO ()
 shouldEvalTo expr expected = do

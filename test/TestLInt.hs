@@ -4,23 +4,9 @@ import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
 import Test.Tasty.QuickCheck
 
+import Arbitrary ()
 import Core (renderText)
 import Stage.LInt
-
-instance Arbitrary Expr where
-  -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
-  arbitrary = sized \n ->
-    if n <= 0
-      then Lit <$> arbitrary
-      else
-        oneof
-          [ Lit <$> arbitrary
-          , neg <$> resize (n `div` 2) arbitrary
-          , do
-              a <- resize (n `div` 2) arbitrary
-              b <- resize (n `div` 2) arbitrary
-              elements [add a b, sub a b]
-          ]
 
 checkPE :: Expr -> Assertion
 checkPE e = do

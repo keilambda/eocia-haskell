@@ -8,10 +8,10 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
+import Arbitrary ()
 import Core (Name, renderText)
 import Pipeline (passUniquify)
 import Stage.LVar qualified as LVar
-import TestLVar ()
 
 tests :: TestTree
 tests = testGroup "Pipeline" [groupPassUniquify]
