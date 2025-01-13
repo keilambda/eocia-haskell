@@ -1,7 +1,7 @@
 PROJ_TEST := eocia-haskell-test
 
 test-watch:
-	ghciwatch --command "cabal repl $(PROJ_TEST)" --test-ghci Main.main --watch test/
+	ghcid -c "cabal repl $(PROJ_TEST)" -T "Main.main"
 
 dump:
 	@git ls-files | while read file; do \
