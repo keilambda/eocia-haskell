@@ -58,11 +58,14 @@ test-suite eocia-haskell-test
     TestCVar
     TestLInt
     TestLVar
+    TestPipeline
 
   build-depends:
-    , base              >=4.7   && <5
+    , base                  >=4.7   && <5
     , eocia-haskell
+    , mtl
     , tasty
     , tasty-hunit
     , tasty-quickcheck
-    , text              ==2.1.2
+    , text                  ==2.1.2
+    , unordered-containers
