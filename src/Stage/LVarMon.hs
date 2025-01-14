@@ -6,7 +6,7 @@ import Prettyprinter
 
 import Core (Name)
 import Stage.CVar (Atom (..))
-import Stage.LInt (NulOp, UnOp, BinOp)
+import Stage.LInt (BinOp, NulOp, UnOp)
 
 type Expr :: Type
 data Expr

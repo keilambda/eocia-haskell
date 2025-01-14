@@ -25,7 +25,7 @@ groupPartialEvaluation =
         checkPE (add (Lit 10) (neg (add (Lit 5) (Lit 3))))
         checkPE (add (Lit 1) (add (Lit 3) (Lit 1)))
         checkPE (neg (add (Lit 3) (neg (Lit 5))))
-    , testProperty "partial evaluation does not change behavior" $ property \e -> ioProperty do
+    , testProperty "partial evaluation does not change behavior" \e -> ioProperty do
         ir <- interpExpr e
         pr <- interpExpr (peExpr e)
         pure (ir == pr)

@@ -29,9 +29,13 @@ groupPassUniquify :: TestTree
 groupPassUniquify =
   testGroup
     "passUniquify"
-    [ testProperty "variable is bound at most once" $ property \expr ->
+    [ testProperty "variable is bound at most once" \expr ->
         let vars = countVars (evalState (passUniquify expr) (0 :: Int))
          in all (<= 1) vars
+    , testProperty "preserves semantics" \expr -> ioProperty do
+        orig <- LVar.runInterpExpr expr
+        uniq <- LVar.runInterpExpr (evalState (passUniquify expr) (0 :: Int))
+        pure $ orig == uniq
     , testCase "preserves semantics" $
         let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
             expr' = evalState (passUniquify expr) (0 :: Int)
