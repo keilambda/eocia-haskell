@@ -21,7 +21,9 @@ countVars = \case
   LVar.Lit _ -> mempty
   LVar.Var _ -> mempty
   LVar.Let name expr body -> insertWith (+) name 1 (unionWith (+) (countVars expr) (countVars body))
-  LVar.Prim _ es -> foldMap countVars es
+  LVar.NulApp _ -> mempty
+  LVar.UnApp _ a -> countVars a
+  LVar.BinApp _ a b -> unionWith (+) (countVars a) (countVars b)
 
 groupPassUniquify :: TestTree
 groupPassUniquify =

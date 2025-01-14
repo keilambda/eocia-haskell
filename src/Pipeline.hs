@@ -18,4 +18,6 @@ passUniquify = loop mempty
       expr' <- loop env expr
       body' <- loop (insert name name' env) body
       pure $ LVar.Let name' expr' body'
-    LVar.Prim op es -> LVar.Prim op <$> traverse (loop env) es
+    e@(LVar.NulApp _) -> pure e
+    LVar.UnApp op a -> LVar.UnApp op <$> loop env a
+    LVar.BinApp op a b -> LVar.BinApp op <$> loop env a <*> loop env b

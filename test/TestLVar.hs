@@ -5,7 +5,6 @@ import Test.Tasty.HUnit hiding (assert)
 
 import Arbitrary ()
 import Core (renderText)
-import Stage.LInt (Op (..))
 import Stage.LVar
 
 shouldEvalTo :: Expr -> Either LVarErr Int -> IO ()
@@ -49,9 +48,6 @@ groupErrors =
     "Errors"
     [ testCase "unbound variable" do
         (Var "x") `shouldEvalTo` (Left (UnboundVariable "x"))
-    , testCase "malformed expression" do
-        let expr = Prim Add [Lit 1]
-        expr `shouldEvalTo` (Left (BadSpecialForm expr))
     ]
 
 groupPretty :: TestTree

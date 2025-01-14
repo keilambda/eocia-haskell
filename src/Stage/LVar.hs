@@ -7,7 +7,6 @@ import Control.Monad.IO.Class (liftIO)
 
 import Data.HashMap.Strict (HashMap, insert, (!?))
 import Data.Kind (Type)
-import Data.List (List)
 import Data.Text (Text, pattern Empty)
 import Data.Text.IO qualified as TIO
 import Data.Text.Read (decimal)
@@ -15,14 +14,16 @@ import Data.Text.Read (decimal)
 import Prettyprinter
 
 import Core (Name)
-import Stage.LInt (Op (..))
+import Stage.LInt (BinOp (..), NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr
   = Lit Int
   | Var Name
   | Let Name Expr Expr
-  | Prim Op (List Expr)
+  | NulApp NulOp
+  | UnApp UnOp Expr
+  | BinApp BinOp Expr Expr
   deriving stock (Show, Eq)
 
 instance Pretty Expr where
@@ -30,19 +31,21 @@ instance Pretty Expr where
     Lit n -> pretty n
     Var n -> pretty n
     Let n e body -> parens $ pretty "let" <+> brackets (pretty n <+> pretty e) <+> pretty body
-    Prim op es -> parens $ pretty op <+> hsep (map pretty es)
+    NulApp op -> parens $ pretty op
+    UnApp op a -> parens $ pretty op <+> pretty a
+    BinApp op a b -> parens $ pretty op <+> pretty a <+> pretty b
 
 read_ :: Expr
-read_ = Prim Read []
+read_ = NulApp Read
 
 neg :: Expr -> Expr
-neg e = Prim Neg [e]
+neg e = UnApp Neg e
 
 add :: Expr -> Expr -> Expr
-add a b = Prim Add [a, b]
+add a b = BinApp Add a b
 
 sub :: Expr -> Expr -> Expr
-sub a b = Prim Sub [a, b]
+sub a b = BinApp Sub a b
 
 type Env :: Type
 type Env = HashMap Name Expr
@@ -50,7 +53,6 @@ type Env = HashMap Name Expr
 type LVarErr :: Type
 data LVarErr
   = UnboundVariable Name
-  | BadSpecialForm Expr
   | InvalidReadInput Text
   deriving stock (Show, Eq)
 
@@ -61,15 +63,14 @@ interpExpr env = \case
   Let n e body -> do
     e' <- interpExpr env e
     interpExpr (insert n (Lit e') env) body
-  Prim Read [] -> do
+  NulApp Read -> do
     str <- liftIO TIO.getLine
     case decimal str of
       Right (r, Empty) -> pure r
       _ -> throwError (InvalidReadInput str)
-  Prim Neg [a] -> negate <$> (interpExpr env a)
-  Prim Add [a, b] -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
-  Prim Sub [a, b] -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
-  s@(Prim _ _) -> throwError (BadSpecialForm s)
+  UnApp Neg a -> negate <$> (interpExpr env a)
+  BinApp Add a b -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
+  BinApp Sub a b -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
 
 runInterpExpr :: Expr -> IO (Either LVarErr Int)
 runInterpExpr e = runExceptT (interpExpr mempty e)

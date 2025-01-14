@@ -6,6 +6,7 @@ import Data.Kind (Type)
 import Prettyprinter
 
 import Core (Name (MkName))
+import Stage.LInt (BinOp, NulOp, UnOp)
 
 type Atom :: Type
 data Atom = Lit Int | Var Name
@@ -16,27 +17,20 @@ instance Pretty Atom where
     Lit n -> pretty n
     Var n -> pretty n
 
-type Op :: Type
-data Op = Read | Neg Atom | Add Atom Atom | Sub Atom Atom
-  deriving stock (Show)
-
-instance Pretty Op where
-  pretty = \case
-    Read -> pretty "read"
-    Neg a -> pretty "-" <+> pretty a
-    Add a b -> pretty a <+> pretty "+" <+> pretty b
-    Sub a b -> pretty a <+> pretty "-" <+> pretty b
-
 type Expr :: Type
 data Expr
   = Atom Atom
-  | Prim Op
+  | NulApp NulOp
+  | UnApp UnOp Atom
+  | BinApp BinOp Atom Atom
   deriving stock (Show)
 
 instance Pretty Expr where
   pretty = \case
     Atom a -> pretty a
-    Prim op -> pretty op
+    NulApp op -> pretty op
+    UnApp op a -> pretty op <+> pretty a
+    BinApp op a b -> pretty a <+> pretty op <+> pretty b
 
 type Stmt :: Type
 data Stmt = Assign Name Expr

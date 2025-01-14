@@ -1,53 +1,66 @@
 module Stage.LInt (module Stage.LInt) where
 
 import Data.Kind (Type)
-import Data.List (List)
 
 import Prettyprinter
 
-type Op :: Type
-data Op = Read | Neg | Add | Sub
+type NulOp :: Type
+data NulOp = Read
   deriving stock (Show, Eq)
 
-instance Pretty Op where
+instance Pretty NulOp where
+  pretty Read = pretty "read"
+
+type UnOp :: Type
+data UnOp = Neg
+  deriving stock (Show, Eq)
+
+instance Pretty UnOp where
+  pretty Neg = pretty "-"
+
+type BinOp :: Type
+data BinOp = Add | Sub
+  deriving stock (Show, Eq)
+
+instance Pretty BinOp where
   pretty = \case
-    Read -> pretty "read"
-    Neg -> pretty "-"
     Add -> pretty "+"
     Sub -> pretty "-"
 
 type Expr :: Type
 data Expr
   = Lit Int
-  | Prim Op (List Expr)
+  | NulApp NulOp
+  | UnApp UnOp Expr
+  | BinApp BinOp Expr Expr
   deriving stock (Show)
 
 instance Pretty Expr where
   pretty = \case
     Lit n -> pretty n
-    Prim op [] -> parens $ pretty op
-    Prim op es -> parens $ pretty op <+> hsep (map pretty es)
+    NulApp op -> parens $ pretty op
+    UnApp op arg -> parens $ pretty op <+> pretty arg
+    BinApp op hls rhs -> parens $ pretty op <+> pretty hls <+> pretty rhs
 
 read_ :: Expr
-read_ = Prim Read []
+read_ = NulApp Read
 
 neg :: Expr -> Expr
-neg e = Prim Neg [e]
+neg e = UnApp Neg e
 
 add :: Expr -> Expr -> Expr
-add a b = Prim Add [a, b]
+add a b = BinApp Add a b
 
 sub :: Expr -> Expr -> Expr
-sub a b = Prim Sub [a, b]
+sub a b = BinApp Sub a b
 
 leaf :: Expr -> Bool
 leaf = \case
   Lit _ -> True
-  Prim Read [] -> True
-  Prim Neg [_] -> False
-  Prim Add [_, _] -> False
-  Prim Sub [_, _] -> False
-  _ -> undefined
+  NulApp Read -> True
+  UnApp Neg _ -> False
+  BinApp Add _ _ -> False
+  BinApp Sub _ _ -> False
 
 -- >>> leaf (Prim Read [])
 -- True
@@ -59,20 +72,18 @@ leaf = \case
 isExpr :: Expr -> Bool
 isExpr = \case
   Lit _ -> True
-  Prim Read [] -> True
-  Prim Neg [a] -> isExpr a
-  Prim Add [a, b] -> (isExpr a) && (isExpr b)
-  Prim Sub [a, b] -> (isExpr a) && (isExpr b)
-  _ -> False
+  NulApp Read -> True
+  UnApp Neg a -> isExpr a
+  BinApp Add a b -> (isExpr a) && (isExpr b)
+  BinApp Sub a b -> (isExpr a) && (isExpr b)
 
 interpExpr :: Expr -> IO Int
 interpExpr = \case
   Lit n -> pure n
-  Prim Read [] -> read <$> getLine
-  Prim Neg [a] -> negate <$> (interpExpr a)
-  Prim Add [a, b] -> (+) <$> (interpExpr a) <*> (interpExpr b)
-  Prim Sub [a, b] -> (-) <$> (interpExpr a) <*> (interpExpr b)
-  _ -> undefined
+  NulApp Read -> read <$> getLine
+  UnApp Neg a -> negate <$> (interpExpr a)
+  BinApp Add a b -> (+) <$> (interpExpr a) <*> (interpExpr b)
+  BinApp Sub a b -> (-) <$> (interpExpr a) <*> (interpExpr b)
 
 peNeg :: Expr -> Expr
 peNeg = \case
@@ -92,8 +103,7 @@ peSub = \cases
 peExpr :: Expr -> Expr
 peExpr = \case
   Lit n -> Lit n
-  Prim Read [] -> read_
-  Prim Neg [a] -> peNeg (peExpr a)
-  Prim Add [a, b] -> peAdd (peExpr a) (peExpr b)
-  Prim Sub [a, b] -> peSub (peExpr a) (peExpr b)
-  _ -> undefined
+  NulApp Read -> read_
+  UnApp Neg a -> peNeg (peExpr a)
+  BinApp Add a b -> peAdd (peExpr a) (peExpr b)
+  BinApp Sub a b -> peSub (peExpr a) (peExpr b)
