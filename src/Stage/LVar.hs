@@ -61,16 +61,15 @@ interpExpr env = \case
   Let n e body -> do
     e' <- interpExpr env e
     interpExpr (insert n (Lit e') env) body
-  s@(Prim n xs) -> case (n, xs) of
-    (Read, []) -> do
-      str <- liftIO TIO.getLine
-      case decimal str of
-        Right (r, Empty) -> pure r
-        _ -> throwError (InvalidReadInput str)
-    (Neg, [a]) -> negate <$> (interpExpr env a)
-    (Add, [a, b]) -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
-    (Sub, [a, b]) -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
-    _ -> throwError (BadSpecialForm s)
+  Prim Read [] -> do
+    str <- liftIO TIO.getLine
+    case decimal str of
+      Right (r, Empty) -> pure r
+      _ -> throwError (InvalidReadInput str)
+  Prim Neg [a] -> negate <$> (interpExpr env a)
+  Prim Add [a, b] -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
+  Prim Sub [a, b] -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
+  s@(Prim _ _) -> throwError (BadSpecialForm s)
 
 runInterpExpr :: Expr -> IO (Either LVarErr Int)
 runInterpExpr e = runExceptT (interpExpr mempty e)
