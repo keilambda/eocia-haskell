@@ -1,11 +1,11 @@
 module Stage.CVar (module Stage.CVar) where
 
-import Data.HashMap.Strict (HashMap)
+import Data.HashMap.Strict (HashMap, toList)
 import Data.Kind (Type)
 
 import Prettyprinter
 
-import Core (Name (MkName))
+import Core (Label, Name (MkName))
 import Stage.LInt (BinOp, NulOp, UnOp)
 
 type Atom :: Type
@@ -49,4 +49,10 @@ instance Pretty Tail where
     Seq s t -> pretty s <> hardline <> pretty t
 
 type Program :: Type
-data Program = MkProgram {env :: HashMap Name Expr, blocks :: HashMap Name Tail}
+data Program = MkProgram {env :: HashMap Name Expr, blocks :: HashMap Label Tail}
+  deriving stock (Show)
+
+instance Pretty Program where
+  pretty MkProgram{blocks} = vsep (map prettyBlock (toList blocks))
+   where
+    prettyBlock (l, t) = pretty l <> colon <> line <> indent 2 (pretty t)
