@@ -67,3 +67,18 @@ passRemoveComplexOperands = \case
       tmpa <- genTmpName
       tmpb <- genTmpName
       pure $ LVarMon.Let tmpa ra (LVarMon.Let tmpb rb (LVarMon.BinApp op (CVar.Var tmpa) (CVar.Var tmpb)))
+
+passExplicateControl :: LVarMon.Expr -> CVar.Tail
+passExplicateControl = \case
+  LVarMon.Atom atm -> CVar.Return (CVar.Atom atm)
+  LVarMon.Let name expr body -> assign name expr (passExplicateControl body)
+  LVarMon.NulApp op -> CVar.Return (CVar.NulApp op)
+  LVarMon.UnApp op a -> CVar.Return (CVar.UnApp op a)
+  LVarMon.BinApp op a b -> CVar.Return (CVar.BinApp op a b)
+ where
+  assign name expr cont = case expr of
+    LVarMon.Atom atm -> CVar.Seq (CVar.Assign name (CVar.Atom atm)) cont
+    LVarMon.Let name' expr' body -> assign name' expr' (assign name body cont)
+    LVarMon.NulApp op -> CVar.Seq (CVar.Assign name (CVar.NulApp op)) cont
+    LVarMon.UnApp op a -> CVar.Seq (CVar.Assign name (CVar.UnApp op a)) cont
+    LVarMon.BinApp op a b -> CVar.Seq (CVar.Assign name (CVar.BinApp op a b)) cont
