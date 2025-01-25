@@ -10,13 +10,14 @@ import Test.Tasty.QuickCheck
 
 import Arbitrary ()
 import Core (Name, renderText)
-import Pipeline (passRemoveComplexOperands, passUniquify)
+import Pipeline (passExplicateControl, passRemoveComplexOperands, passUniquify)
 import Stage.CVar qualified as CVar
+import Stage.LInt (BinOp (Add))
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
 
 tests :: TestTree
-tests = testGroup "Pipeline" [groupPassUniquify, groupPassRemoveComplexOperands]
+tests = testGroup "Pipeline" [groupPassUniquify, groupPassRemoveComplexOperands, groupPassExplicateControl]
 
 countVars :: LVar.Expr -> HashMap Name Int
 countVars = \case
@@ -59,4 +60,28 @@ groupPassRemoveComplexOperands =
         let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
          in evalState (passRemoveComplexOperands expr) (1 :: Int)
               @?= LVarMon.Let "a" (LVarMon.lit 42) (LVarMon.Let "b" (LVarMon.var "a") (LVarMon.var "b"))
+    ]
+
+groupPassExplicateControl :: TestTree
+groupPassExplicateControl =
+  testGroup
+    "passExplicateControl"
+    [ testCase "" $
+        let
+          let_ = LVarMon.Let
+          lit = LVarMon.lit
+          var = CVar.Var
+          clit = CVar.Atom . CVar.Lit
+          expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (var "x.1") (var "x.2")))) (LVarMon.var "y")
+         in
+          passExplicateControl expr
+            @?= CVar.Seq
+              (CVar.Assign "x.1" (clit 20))
+              ( CVar.Seq
+                  (CVar.Assign "x.2" (clit 22))
+                  ( CVar.Seq
+                      (CVar.Assign "y" (CVar.BinApp Add (var "x.1") (var "x.2")))
+                      (CVar.Return (CVar.Atom (var "y")))
+                  )
+              )
     ]

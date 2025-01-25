@@ -23,7 +23,7 @@ data Expr
   | NulApp NulOp
   | UnApp UnOp Atom
   | BinApp BinOp Atom Atom
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Expr where
   pretty = \case
@@ -34,14 +34,14 @@ instance Pretty Expr where
 
 type Stmt :: Type
 data Stmt = Assign Name Expr
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Stmt where
   pretty (Assign (MkName n) e) = pretty n <+> equals <+> pretty e <> semi
 
 type Tail :: Type
 data Tail = Return Expr | Seq Stmt Tail
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Tail where
   pretty = \case
