@@ -6,7 +6,7 @@ import Prettyprinter
 
 import Core (Name)
 import Stage.CVar (Atom (..))
-import Stage.LInt (BinOp, NulOp, UnOp)
+import Stage.LInt (BinOp (..), NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr
@@ -15,7 +15,25 @@ data Expr
   | NulApp NulOp
   | UnApp UnOp Atom
   | BinApp BinOp Atom Atom
-  deriving stock (Show)
+  deriving stock (Show, Eq)
+
+lit :: Int -> Expr
+lit = Atom . Lit
+
+var :: Name -> Expr
+var = Atom . Var
+
+read_ :: Expr
+read_ = NulApp Read
+
+neg :: Atom -> Expr
+neg a = UnApp Neg a
+
+add :: Atom -> Atom -> Expr
+add a b = BinApp Add a b
+
+sub :: Atom -> Atom -> Expr
+sub a b = BinApp Sub a b
 
 instance Pretty Expr where
   pretty = \case

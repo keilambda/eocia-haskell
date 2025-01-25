@@ -10,7 +10,7 @@ import Stage.LInt (BinOp, NulOp, UnOp)
 
 type Atom :: Type
 data Atom = Lit Int | Var Name
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Atom where
   pretty = \case
