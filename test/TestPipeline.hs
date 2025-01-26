@@ -101,9 +101,6 @@ groupPassSelectInstructions =
     "passSelectInstructions"
     [ testCase "maps to x86 with vars instructions" $
         let expr = CVar.Seq (CVar.Assign "x" (CVar.BinApp Add (CVar.Lit 32) (CVar.Lit 10))) (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (CVar.Var "x"))) (CVar.Return (CVar.Atom (CVar.Var "y"))))
-            imm = X86Var.Imm
-            reg = X86Var.Reg
-            var = X86Var.Var
          in passSelectInstructions expr
               @?= X86Var.MkBlock
                 [ -- add
@@ -121,4 +118,30 @@ groupPassSelectInstructions =
     , testProperty "always ends with jmp to conclusion" \e -> do
         let (X86Var.MkBlock instr) = passSelectInstructions e
          in last instr == Jmp "conclusion"
+    , testCase "optimizes compound assignment (left)" do
+        let expr =
+              CVar.Seq
+                (CVar.Assign "x" (CVar.BinApp Add (CVar.Var "x") (CVar.Lit 42)))
+                (CVar.Return (CVar.Atom (CVar.Var "x")))
+        passSelectInstructions expr
+          @?= X86Var.MkBlock
+            [ AddQ (imm 42) (var "x")
+            , MovQ (var "x") (reg RAX)
+            , Jmp "conclusion"
+            ]
+    , testCase "optimizes compound assignment (right)" do
+        let expr =
+              CVar.Seq
+                (CVar.Assign "y" (CVar.BinApp Add (CVar.Lit 42) (CVar.Var "y")))
+                (CVar.Return (CVar.Atom (CVar.Var "y")))
+        passSelectInstructions expr
+          @?= X86Var.MkBlock
+            [ AddQ (imm 42) (var "y")
+            , MovQ (var "y") (reg RAX)
+            , Jmp "conclusion"
+            ]
     ]
+ where
+  imm = X86Var.Imm
+  reg = X86Var.Reg
+  var = X86Var.Var

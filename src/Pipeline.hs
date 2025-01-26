@@ -121,4 +121,10 @@ passSelectInstructions = \case
     CVar.Atom a -> [MovQ (fromAtom a) (X86Var.Var name)]
     CVar.NulApp op -> fromNulOp op ++ rax2Var name
     CVar.UnApp op a -> fromUnOp op a ++ rax2Var name
+    CVar.BinApp op (CVar.Var name') rhs | name' == name -> case op of
+      Add -> [AddQ (fromAtom rhs) (X86Var.Var name)]
+      Sub -> [SubQ (fromAtom rhs) (X86Var.Var name)]
+    CVar.BinApp op lhs (CVar.Var name') | name' == name -> case op of
+      Add -> [AddQ (fromAtom lhs) (X86Var.Var name)]
+      Sub -> [SubQ (fromAtom lhs) (X86Var.Var name)]
     CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
