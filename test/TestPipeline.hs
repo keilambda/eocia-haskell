@@ -41,83 +41,84 @@ groupPassUniquify :: TestTree
 groupPassUniquify =
   testGroup
     "passUniquify"
-    [ testProperty "variable is bound at most once" \expr ->
+    [ testProperty "variable is bound at most once" \expr -> do
         let vars = countVars (evalState (passUniquify expr) (0 :: Int))
-         in all (<= 1) vars
+        all (<= 1) vars
     , testProperty "preserves semantics" \expr -> ioProperty do
         orig <- LVar.runInterpExpr expr
         uniq <- LVar.runInterpExpr (evalState (passUniquify expr) (0 :: Int))
         pure $ orig == uniq
-    , testCase "preserves semantics" $
+    , testCase "preserves semantics" do
         let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
             expr' = evalState (passUniquify expr) (0 :: Int)
-         in renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
+        renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
     ]
 
 groupPassRemoveComplexOperands :: TestTree
 groupPassRemoveComplexOperands =
   testGroup
     "passRemoveComplexOperands"
-    [ testCase "breaks down complex operands into monadic form" $
+    [ testCase "breaks down complex operands into monadic form" do
         let expr = LVar.Let "x" (LVar.add (LVar.Lit 42) (LVar.neg (LVar.Lit 10))) (LVar.add (LVar.Var "x") (LVar.Lit 10))
-         in evalState (passRemoveComplexOperands expr) (1 :: Int)
-              @?= LVarMon.Let
-                "x"
-                (LVarMon.Let "tmp.1" (LVarMon.neg (CVar.Lit 10)) (LVarMon.add (CVar.Lit 42) (CVar.Var "tmp.1")))
-                (LVarMon.add (CVar.Var "x") (CVar.Lit 10))
-    , testCase "does not simplify already simple expression" $
+        evalState (passRemoveComplexOperands expr) (1 :: Int)
+          @?= LVarMon.Let
+            "x"
+            (LVarMon.Let "tmp.1" (LVarMon.neg (CVar.Lit 10)) (LVarMon.add (CVar.Lit 42) (CVar.Var "tmp.1")))
+            (LVarMon.add (CVar.Var "x") (CVar.Lit 10))
+    , testCase "does not simplify already simple expression" do
         let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
-         in evalState (passRemoveComplexOperands expr) (1 :: Int)
-              @?= LVarMon.Let "a" (LVarMon.lit 42) (LVarMon.Let "b" (LVarMon.var "a") (LVarMon.var "b"))
+        evalState (passRemoveComplexOperands expr) (1 :: Int)
+          @?= LVarMon.Let "a" (LVarMon.lit 42) (LVarMon.Let "b" (LVarMon.var "a") (LVarMon.var "b"))
     ]
 
 groupPassExplicateControl :: TestTree
 groupPassExplicateControl =
   testGroup
     "passExplicateControl"
-    [ testCase "converts expressions into statements ending with a return" $
-        let
-          let_ = LVarMon.Let
-          lit = LVarMon.lit
-          var = CVar.Var
-          clit = CVar.Atom . CVar.Lit
-          expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (var "x.1") (var "x.2")))) (LVarMon.var "y")
-         in
-          passExplicateControl expr
-            @?= CVar.Seq
-              (CVar.Assign "x.1" (clit 20))
-              ( CVar.Seq
-                  (CVar.Assign "x.2" (clit 22))
-                  ( CVar.Seq
-                      (CVar.Assign "y" (CVar.BinApp Add (var "x.1") (var "x.2")))
-                      (CVar.Return (CVar.Atom (var "y")))
-                  )
-              )
+    [ testCase "converts expressions into statements ending with a return" do
+        let let_ = LVarMon.Let
+            lit = LVarMon.lit
+            var = CVar.Var
+            clit = CVar.Atom . CVar.Lit
+            expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (var "x.1") (var "x.2")))) (LVarMon.var "y")
+        passExplicateControl expr
+          @?= CVar.Seq
+            (CVar.Assign "x.1" (clit 20))
+            ( CVar.Seq
+                (CVar.Assign "x.2" (clit 22))
+                ( CVar.Seq
+                    (CVar.Assign "y" (CVar.BinApp Add (var "x.1") (var "x.2")))
+                    (CVar.Return (CVar.Atom (var "y")))
+                )
+            )
     ]
 
 groupPassSelectInstructions :: TestTree
 groupPassSelectInstructions =
   testGroup
     "passSelectInstructions"
-    [ testCase "maps to x86 with vars instructions" $
-        let expr = CVar.Seq (CVar.Assign "x" (CVar.BinApp Add (CVar.Lit 32) (CVar.Lit 10))) (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (CVar.Var "x"))) (CVar.Return (CVar.Atom (CVar.Var "y"))))
-         in passSelectInstructions expr
-              @?= X86Var.MkBlock
-                [ -- add
-                  MovQ (imm 32) (reg RAX)
-                , AddQ (imm 10) (reg RAX)
-                , MovQ (reg RAX) (var "x")
-                , -- neg
-                  MovQ (var "x") (reg RAX)
-                , NegQ (reg RAX)
-                , MovQ (reg RAX) (var "y")
-                , -- return
-                  MovQ (var "y") (reg RAX)
-                , Jmp "conclusion"
-                ]
+    [ testCase "maps to x86 with vars instructions" do
+        let expr =
+              CVar.Seq
+                (CVar.Assign "x" (CVar.BinApp Add (CVar.Lit 32) (CVar.Lit 10)))
+                (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (CVar.Var "x"))) (CVar.Return (CVar.Atom (CVar.Var "y"))))
+        passSelectInstructions expr
+          @?= X86Var.MkBlock
+            [ -- add
+              MovQ (imm 32) (reg RAX)
+            , AddQ (imm 10) (reg RAX)
+            , MovQ (reg RAX) (var "x")
+            , -- neg
+              MovQ (var "x") (reg RAX)
+            , NegQ (reg RAX)
+            , MovQ (reg RAX) (var "y")
+            , -- return
+              MovQ (var "y") (reg RAX)
+            , Jmp "conclusion"
+            ]
     , testProperty "always ends with jmp to conclusion" \e -> do
         let (X86Var.MkBlock instr) = passSelectInstructions e
-         in last instr == Jmp "conclusion"
+        last instr == Jmp "conclusion"
     , testCase "optimizes compound assignment (left)" do
         let expr =
               CVar.Seq
