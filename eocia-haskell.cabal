@@ -27,7 +27,6 @@ library
     Stage.LInt
     Stage.LVar
     Stage.LVarMon
-    Stage.X86
     Stage.X86Int
     Stage.X86Var
 

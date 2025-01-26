@@ -5,8 +5,7 @@ import Data.List (List)
 
 import Prettyprinter
 
-import Core (Name)
-import Stage.X86 (InstrF, Reg)
+import Core (InstrF, Name, Reg)
 
 type Arg :: Type
 data Arg

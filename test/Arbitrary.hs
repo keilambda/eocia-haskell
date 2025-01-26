@@ -4,9 +4,8 @@ import Data.Text (pack)
 
 import Test.Tasty.QuickCheck
 
-import Core (Label (MkLabel), Name (MkName))
+import Core (Atom (Lit, Var), BinOp (Add, Sub), Label (MkLabel), Name (MkName), NulOp (Read), UnOp (Neg))
 import Stage.CVar qualified as CVar
-import Stage.LInt (BinOp (Add, Sub), NulOp (Read), UnOp (Neg))
 import Stage.LInt qualified as LInt
 import Stage.LVar qualified as LVar
 
@@ -57,8 +56,8 @@ instance Arbitrary LVar.Expr where
               elements [LVar.add a b, LVar.sub a b]
           ]
 
-instance Arbitrary CVar.Atom where
-  arbitrary = oneof [CVar.Lit <$> arbitrary, CVar.Var <$> arbitrary]
+instance Arbitrary Atom where
+  arbitrary = oneof [Lit <$> arbitrary, Var <$> arbitrary]
 
 instance Arbitrary CVar.Expr where
   arbitrary = sized \n ->

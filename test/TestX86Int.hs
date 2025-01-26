@@ -6,8 +6,7 @@ import Data.Text qualified as T
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core (renderText)
-import Stage.X86 (InstrF (..), Reg (..))
+import Core (InstrF (..), Reg (..), renderText)
 import Stage.X86Int
 
 tests :: TestTree

@@ -5,17 +5,7 @@ import Data.Kind (Type)
 
 import Prettyprinter
 
-import Core (Label, Name (MkName))
-import Stage.LInt (BinOp, NulOp, UnOp)
-
-type Atom :: Type
-data Atom = Lit Int | Var Name
-  deriving stock (Show, Eq)
-
-instance Pretty Atom where
-  pretty = \case
-    Lit n -> pretty n
-    Var n -> pretty n
+import Core (Atom, BinOp, Label, Name (MkName), NulOp, UnOp)
 
 type Expr :: Type
 data Expr

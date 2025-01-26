@@ -8,8 +8,7 @@ import Prettyprinter
 
 import GHC.Records (HasField (getField))
 
-import Core (Label, Name)
-import Stage.X86 (InstrF, Reg)
+import Core (InstrF, Label, Name, Reg)
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg

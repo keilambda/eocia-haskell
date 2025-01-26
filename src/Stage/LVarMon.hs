@@ -4,9 +4,7 @@ import Data.Kind (Type)
 
 import Prettyprinter
 
-import Core (Name)
-import Stage.CVar (Atom (..))
-import Stage.LInt (BinOp (..), NulOp (..), UnOp (..))
+import Core (Atom (..), BinOp (..), Name, NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr

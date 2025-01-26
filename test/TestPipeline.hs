@@ -9,13 +9,11 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 import Arbitrary ()
-import Core (Name, renderText)
+import Core
 import Pipeline (passExplicateControl, passRemoveComplexOperands, passSelectInstructions, passUniquify)
 import Stage.CVar qualified as CVar
-import Stage.LInt (BinOp (Add, Sub), UnOp (Neg))
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
-import Stage.X86 (InstrF (..), Reg (RAX))
 import Stage.X86Var qualified as X86Var
 
 tests :: TestTree
@@ -63,8 +61,8 @@ groupPassRemoveComplexOperands =
         evalState (passRemoveComplexOperands expr) (1 :: Int)
           @?= LVarMon.Let
             "x"
-            (LVarMon.Let "tmp.1" (LVarMon.neg (CVar.Lit 10)) (LVarMon.add (CVar.Lit 42) (CVar.Var "tmp.1")))
-            (LVarMon.add (CVar.Var "x") (CVar.Lit 10))
+            (LVarMon.Let "tmp.1" (LVarMon.neg (Lit 10)) (LVarMon.add (Lit 42) (Var "tmp.1")))
+            (LVarMon.add (Var "x") (Lit 10))
     , testCase "does not simplify already simple expression" do
         let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
         evalState (passRemoveComplexOperands expr) (1 :: Int)
@@ -78,17 +76,16 @@ groupPassExplicateControl =
     [ testCase "converts expressions into statements ending with a return" do
         let let_ = LVarMon.Let
             lit = LVarMon.lit
-            var = CVar.Var
-            clit = CVar.Atom . CVar.Lit
-            expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (var "x.1") (var "x.2")))) (LVarMon.var "y")
+            clit = CVar.Atom . Lit
+            expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (Var "x.1") (Var "x.2")))) (LVarMon.var "y")
         passExplicateControl expr
           @?= CVar.Seq
             (CVar.Assign "x.1" (clit 20))
             ( CVar.Seq
                 (CVar.Assign "x.2" (clit 22))
                 ( CVar.Seq
-                    (CVar.Assign "y" (CVar.BinApp Add (var "x.1") (var "x.2")))
-                    (CVar.Return (CVar.Atom (var "y")))
+                    (CVar.Assign "y" (CVar.BinApp Add (Var "x.1") (Var "x.2")))
+                    (CVar.Return (CVar.Atom (Var "y")))
                 )
             )
     ]
@@ -100,8 +97,8 @@ groupPassSelectInstructions =
     [ testCase "maps to x86 with vars instructions" do
         let expr =
               CVar.Seq
-                (CVar.Assign "x" (CVar.BinApp Add (CVar.Lit 32) (CVar.Lit 10)))
-                (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (CVar.Var "x"))) (CVar.Return (CVar.Atom (CVar.Var "y"))))
+                (CVar.Assign "x" (CVar.BinApp Add (Lit 32) (Lit 10)))
+                (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (Var "x"))) (CVar.Return (CVar.Atom (Var "y"))))
         passSelectInstructions expr
           @?= X86Var.MkBlock
             [ -- add
@@ -121,8 +118,8 @@ groupPassSelectInstructions =
     , testCase "optimizes compound assignment (left)" do
         let expr =
               CVar.Seq
-                (CVar.Assign "x" (CVar.BinApp Add (CVar.Var "x") (CVar.Lit 42)))
-                (CVar.Return (CVar.Atom (CVar.Var "x")))
+                (CVar.Assign "x" (CVar.BinApp Add (Var "x") (Lit 42)))
+                (CVar.Return (CVar.Atom (Var "x")))
         passSelectInstructions expr
           @?= X86Var.MkBlock
             [ AddQ (imm 42) (var "x")
@@ -132,8 +129,8 @@ groupPassSelectInstructions =
     , testCase "optimizes compound assignment (right)" do
         let expr =
               CVar.Seq
-                (CVar.Assign "y" (CVar.BinApp Add (CVar.Lit 42) (CVar.Var "y")))
-                (CVar.Return (CVar.Atom (CVar.Var "y")))
+                (CVar.Assign "y" (CVar.BinApp Add (Lit 42) (Var "y")))
+                (CVar.Return (CVar.Atom (Var "y")))
         passSelectInstructions expr
           @?= X86Var.MkBlock
             [ AddQ (imm 42) (var "y")
@@ -141,12 +138,12 @@ groupPassSelectInstructions =
             , Jmp "conclusion"
             ]
     , testProperty "distinct operands optimization" $ forAll
-        (arbitrary `suchThat` \(_, a, b) -> let cvar = CVar.Var "x" in cvar /= a && cvar /= b)
+        (arbitrary `suchThat` \(_, a, b) -> let cvar = Var "x" in cvar /= a && cvar /= b)
         \(op, atma, atmb) -> do
           let expr =
                 CVar.Seq
                   (CVar.Assign "x" (CVar.BinApp op atma atmb))
-                  (CVar.Return (CVar.Atom (CVar.Var "x")))
+                  (CVar.Return (CVar.Atom (Var "x")))
           passSelectInstructions expr
             == X86Var.MkBlock
               [ MovQ (fromAtom atma) (var "x")
@@ -160,8 +157,8 @@ groupPassSelectInstructions =
   reg = X86Var.Reg
   var = X86Var.Var
   fromAtom = \case
-    CVar.Lit a -> X86Var.Imm a
-    CVar.Var a -> X86Var.Var a
+    Lit a -> X86Var.Imm a
+    Var a -> X86Var.Var a
   fromOp = \case
     Add -> AddQ
     Sub -> SubQ

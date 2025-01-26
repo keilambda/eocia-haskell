@@ -13,8 +13,7 @@ import Data.Text.Read (decimal)
 
 import Prettyprinter
 
-import Core (Name)
-import Stage.LInt (BinOp (..), NulOp (..), UnOp (..))
+import Core (BinOp (..), Name, NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr

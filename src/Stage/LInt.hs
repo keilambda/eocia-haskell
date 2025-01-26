@@ -4,28 +4,7 @@ import Data.Kind (Type)
 
 import Prettyprinter
 
-type NulOp :: Type
-data NulOp = Read
-  deriving stock (Show, Eq)
-
-instance Pretty NulOp where
-  pretty Read = pretty "read"
-
-type UnOp :: Type
-data UnOp = Neg
-  deriving stock (Show, Eq)
-
-instance Pretty UnOp where
-  pretty Neg = pretty "-"
-
-type BinOp :: Type
-data BinOp = Add | Sub
-  deriving stock (Show, Eq)
-
-instance Pretty BinOp where
-  pretty = \case
-    Add -> pretty "+"
-    Sub -> pretty "-"
+import Core (BinOp (..), NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr

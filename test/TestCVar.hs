@@ -3,9 +3,8 @@ module TestCVar (tests) where
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core (renderText)
+import Core (Atom (..), BinOp (..), UnOp (..), renderText)
 import Stage.CVar
-import Stage.LInt (BinOp (..), UnOp (..))
 
 tests :: TestTree
 tests = testGroup "CVar" [groupPretty]
