@@ -10,14 +10,23 @@ import Test.Tasty.QuickCheck
 
 import Arbitrary ()
 import Core (Name, renderText)
-import Pipeline (passExplicateControl, passRemoveComplexOperands, passUniquify)
+import Pipeline (passExplicateControl, passRemoveComplexOperands, passSelectInstructions, passUniquify)
 import Stage.CVar qualified as CVar
-import Stage.LInt (BinOp (Add))
+import Stage.LInt (BinOp (Add), UnOp (Neg))
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
+import Stage.X86 (InstrF (..), Reg (RAX))
+import Stage.X86Var qualified as X86Var
 
 tests :: TestTree
-tests = testGroup "Pipeline" [groupPassUniquify, groupPassRemoveComplexOperands, groupPassExplicateControl]
+tests =
+  testGroup
+    "Pipeline"
+    [ groupPassUniquify
+    , groupPassRemoveComplexOperands
+    , groupPassExplicateControl
+    , groupPassSelectInstructions
+    ]
 
 countVars :: LVar.Expr -> HashMap Name Int
 countVars = \case
@@ -66,7 +75,7 @@ groupPassExplicateControl :: TestTree
 groupPassExplicateControl =
   testGroup
     "passExplicateControl"
-    [ testCase "" $
+    [ testCase "converts expressions into statements ending with a return" $
         let
           let_ = LVarMon.Let
           lit = LVarMon.lit
@@ -84,4 +93,32 @@ groupPassExplicateControl =
                       (CVar.Return (CVar.Atom (var "y")))
                   )
               )
+    ]
+
+groupPassSelectInstructions :: TestTree
+groupPassSelectInstructions =
+  testGroup
+    "passSelectInstructions"
+    [ testCase "maps to x86 with vars instructions" $
+        let expr = CVar.Seq (CVar.Assign "x" (CVar.BinApp Add (CVar.Lit 32) (CVar.Lit 10))) (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (CVar.Var "x"))) (CVar.Return (CVar.Atom (CVar.Var "y"))))
+            imm = X86Var.Imm
+            reg = X86Var.Reg
+            var = X86Var.Var
+         in passSelectInstructions expr
+              @?= X86Var.MkBlock
+                [ -- add
+                  MovQ (imm 32) (reg RAX)
+                , AddQ (imm 10) (reg RAX)
+                , MovQ (reg RAX) (var "x")
+                , -- neg
+                  MovQ (var "x") (reg RAX)
+                , NegQ (reg RAX)
+                , MovQ (reg RAX) (var "y")
+                , -- return
+                  MovQ (var "y") (reg RAX)
+                , Jmp "conclusion"
+                ]
+    , testProperty "always ends with jmp to conclusion" \e -> do
+        let (X86Var.MkBlock instr) = passSelectInstructions e
+         in last instr == Jmp "conclusion"
     ]
