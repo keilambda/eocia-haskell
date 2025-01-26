@@ -8,7 +8,7 @@ import Core (Label)
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Reg where
   pretty = \case
@@ -42,7 +42,7 @@ data InstrF arg
   | Jmp Label
   | Syscall
   | RetQ
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance (Pretty arg) => Pretty (InstrF arg) where
   pretty = \case

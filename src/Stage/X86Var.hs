@@ -14,7 +14,7 @@ data Arg
   | Reg Reg
   | Deref Int Reg
   | Var Name
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Arg where
   pretty = \case
@@ -29,6 +29,7 @@ type Instr = InstrF Arg
 type Block :: Type
 newtype Block = MkBlock {getBlock :: List Instr}
   deriving stock (Show)
+  deriving newtype (Eq)
 
 instance Pretty Block where
   pretty (MkBlock xs) = vsep (map (align . pretty) xs)

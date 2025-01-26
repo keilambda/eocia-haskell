@@ -18,16 +18,16 @@ import Core.Gensym
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}
-  deriving stock (Show, Eq)
-  deriving newtype (Hashable, IsString)
+  deriving stock (Show)
+  deriving newtype (Eq, Hashable, IsString)
 
 instance Pretty Name where
   pretty (MkName t) = pretty t
 
 type Label :: Type
 newtype Label = MkLabel {getLabel :: Text}
-  deriving stock (Show, Eq)
-  deriving newtype (Hashable, IsString)
+  deriving stock (Show)
+  deriving newtype (Eq, Hashable, IsString)
 
 instance Pretty Label where
   pretty (MkLabel t) = pretty t
