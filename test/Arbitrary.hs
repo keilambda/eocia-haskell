@@ -22,6 +22,10 @@ instance Arbitrary Label where
     first = ['a' .. 'z'] ++ ['A' .. 'Z'] ++ "_"
     rest = first ++ ['0' .. '9']
 
+instance Arbitrary NulOp where arbitrary = pure Read
+instance Arbitrary UnOp where arbitrary = pure Neg
+instance Arbitrary BinOp where arbitrary = elements [Add, Sub]
+
 instance Arbitrary LInt.Expr where
   -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
   arbitrary = sized \n ->

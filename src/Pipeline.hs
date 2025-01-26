@@ -127,4 +127,15 @@ passSelectInstructions = \case
     CVar.BinApp op lhs (CVar.Var name') | name' == name -> case op of
       Add -> [AddQ (fromAtom lhs) (X86Var.Var name)]
       Sub -> [SubQ (fromAtom lhs) (X86Var.Var name)]
+    CVar.BinApp op a b | cname /= a && cname /= b -> case op of
+      Add ->
+        [ MovQ (fromAtom a) (X86Var.Var name)
+        , AddQ (fromAtom b) (X86Var.Var name)
+        ]
+      Sub ->
+        [ MovQ (fromAtom a) (X86Var.Var name)
+        , SubQ (fromAtom b) (X86Var.Var name)
+        ]
+     where
+      cname = CVar.Var name
     CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
