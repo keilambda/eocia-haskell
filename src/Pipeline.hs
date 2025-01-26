@@ -6,8 +6,11 @@ import Data.HashMap.Strict (findWithDefault, insert)
 
 import Core (MonadGensym (gensym), Name (MkName, getName))
 import Stage.CVar qualified as CVar
+import Stage.LInt (BinOp (Add, Sub), NulOp (Read), UnOp (Neg))
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
+import Stage.X86 (InstrF (..), Reg (..))
+import Stage.X86Var qualified as X86Var
 
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
 passUniquify = loop mempty
@@ -82,3 +85,40 @@ passExplicateControl = \case
     LVarMon.NulApp op -> CVar.Seq (CVar.Assign name (CVar.NulApp op)) cont
     LVarMon.UnApp op a -> CVar.Seq (CVar.Assign name (CVar.UnApp op a)) cont
     LVarMon.BinApp op a b -> CVar.Seq (CVar.Assign name (CVar.BinApp op a b)) cont
+
+passSelectInstructions :: CVar.Tail -> X86Var.Block
+passSelectInstructions = \case
+  CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX), Jmp "conclusion"]
+  CVar.Return (CVar.NulApp op) -> X86Var.MkBlock $ fromNulOp op ++ [Jmp "conclusion"]
+  CVar.Return (CVar.UnApp op a) -> X86Var.MkBlock $ fromUnOp op a ++ [Jmp "conclusion"]
+  CVar.Return (CVar.BinApp op a b) -> X86Var.MkBlock $ fromBinOp op a b ++ [Jmp "conclusion"]
+  CVar.Seq stmt tail_ -> X86Var.MkBlock (fromStmt stmt ++ X86Var.getBlock (passSelectInstructions tail_))
+ where
+  fromAtom = \case
+    CVar.Lit a -> X86Var.Imm a
+    CVar.Var a -> X86Var.Var a
+
+  fromNulOp Read = [CallQ "read_int" 0]
+
+  fromUnOp Neg a =
+    [ MovQ (fromAtom a) (X86Var.Reg RAX)
+    , NegQ (X86Var.Reg RAX)
+    ]
+
+  fromBinOp op a b = case op of
+    Add ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , AddQ (fromAtom b) (X86Var.Reg RAX)
+      ]
+    Sub ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , SubQ (fromAtom b) (X86Var.Reg RAX)
+      ]
+
+  rax2Var name = [MovQ (X86Var.Reg RAX) (X86Var.Var name)]
+
+  fromStmt (CVar.Assign name expr) = case expr of
+    CVar.Atom a -> [MovQ (fromAtom a) (X86Var.Var name)]
+    CVar.NulApp op -> fromNulOp op ++ rax2Var name
+    CVar.UnApp op a -> fromUnOp op a ++ rax2Var name
+    CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
