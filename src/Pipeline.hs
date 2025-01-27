@@ -2,7 +2,7 @@
 
 module Pipeline (module Pipeline) where
 
-import Control.Monad.State.Strict (State, get, modify)
+import Control.Monad.State.Strict (MonadState, State, get, modify)
 
 import Data.HashMap.Strict (findWithDefault, insert, (!?))
 import Data.Traversable (for)
@@ -149,7 +149,7 @@ passSelectInstructions = \case
     CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
-passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block
+passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block
 passAssignHomes (X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
     AddQ src tgt -> AddQ <$> spill src <*> spill tgt
@@ -163,7 +163,7 @@ passAssignHomes (X86Var.MkBlock xs) =
     Syscall -> pure Syscall
     RetQ -> pure RetQ
  where
-  spill :: X86Var.Arg -> State X86Int.Frame X86Int.Arg
+  spill :: (MonadState X86Int.Frame m) => X86Var.Arg -> m X86Int.Arg
   spill = \case
     X86Var.Imm n -> pure (X86Int.Imm n)
     X86Var.Reg reg -> pure (X86Int.Reg reg)
@@ -177,6 +177,7 @@ passAssignHomes (X86Var.MkBlock xs) =
               arg = X86Int.Deref offset' RBP
           modify \s -> s{X86Int.env = insert name arg env, X86Int.offset = offset'}
           pure arg
+{-# SPECIALIZE passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block #-}
 
 {- | \(O(n)\) Patch instructions to make sure that each instruction adheres to the restriction that at most one argument
 an instruction may be a memory reference.
