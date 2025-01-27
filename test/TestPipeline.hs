@@ -1,6 +1,6 @@
 module TestPipeline (tests) where
 
-import Control.Monad.State (evalState)
+import Control.Monad.State.Strict (evalState)
 
 import Data.HashMap.Strict (HashMap, insertWith, unionWith)
 

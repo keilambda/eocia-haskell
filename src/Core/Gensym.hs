@@ -1,6 +1,6 @@
 module Core.Gensym (MonadGensym (gensym)) where
 
-import Control.Monad.State (State, get, put)
+import Control.Monad.State.Strict (State, get, put)
 import Data.Kind (Constraint, Type)
 import Data.Text (Text)
 import Data.Text qualified as T

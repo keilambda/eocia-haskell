@@ -2,7 +2,7 @@
 
 module Pipeline (module Pipeline) where
 
-import Control.Monad.State (State, get, modify)
+import Control.Monad.State.Strict (State, get, modify)
 
 import Data.HashMap.Strict (findWithDefault, insert, (!?))
 import Data.Traversable (for)
