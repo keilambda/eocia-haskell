@@ -22,6 +22,7 @@ library
   exposed-modules:
     Core
     Core.Gensym
+    Core.Pretty
     Pipeline
     Stage.CVar
     Stage.LInt

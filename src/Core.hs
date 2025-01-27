@@ -7,8 +7,8 @@ module Core
   , BinOp (Add, Sub)
   , Reg (..)
   , InstrF (..)
-  , renderText
   , module Core.Gensym
+  , module Core.Pretty
   )
 where
 
@@ -18,9 +18,9 @@ import Data.String (IsString)
 import Data.Text (Text)
 
 import Prettyprinter
-import Prettyprinter.Render.Text (renderStrict)
 
 import Core.Gensym
+import Core.Pretty
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}
@@ -120,6 +120,3 @@ instance (Pretty arg) => Pretty (InstrF arg) where
     Jmp lbl -> pretty "jmp" <+> pretty lbl
     Syscall -> pretty "syscall"
     RetQ -> pretty "retq"
-
-renderText :: (Pretty a) => a -> Text
-renderText = renderStrict . layoutPretty defaultLayoutOptions . pretty
