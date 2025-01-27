@@ -4,10 +4,11 @@ import Data.Text (pack)
 
 import Test.Tasty.QuickCheck
 
-import Core (Atom (Lit, Var), BinOp (Add, Sub), Label (MkLabel), Name (MkName), NulOp (Read), UnOp (Neg))
+import Core
 import Stage.CVar qualified as CVar
 import Stage.LInt qualified as LInt
 import Stage.LVar qualified as LVar
+import Stage.X86Int qualified as X86Int
 
 instance Arbitrary Name where
   arbitrary = MkName . pack <$> ((:) <$> elements first <*> listOf (elements rest))
@@ -24,6 +25,9 @@ instance Arbitrary Label where
 instance Arbitrary NulOp where arbitrary = pure Read
 instance Arbitrary UnOp where arbitrary = pure Neg
 instance Arbitrary BinOp where arbitrary = elements [Add, Sub]
+
+instance Arbitrary Reg where
+  arbitrary = elements [RSP, RBP, RAX, RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15]
 
 instance Arbitrary LInt.Expr where
   -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
@@ -83,3 +87,11 @@ instance Arbitrary CVar.Tail where
           [ (1, CVar.Return <$> arbitrary)
           , (4, CVar.Seq <$> arbitrary <*> resize (n `div` 2) arbitrary)
           ]
+
+instance Arbitrary X86Int.Arg where
+  arbitrary =
+    oneof
+      [ X86Int.Imm <$> arbitrary
+      , X86Int.Reg <$> arbitrary
+      , X86Int.Deref <$> arbitrary <*> arbitrary
+      ]

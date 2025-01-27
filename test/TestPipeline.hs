@@ -27,6 +27,7 @@ tests =
     , groupPassSelectInstructions
     , groupPassAssignHomes
     , groupPassPatchInstructions
+    , groupPassRemoveRedundantMoves
     ]
 
 countVars :: LVar.Expr -> HashMap Name Int
@@ -215,4 +216,16 @@ groupPassPatchInstructions =
             [ MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
             , MovQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
             ]
+    ]
+
+groupPassRemoveRedundantMoves :: TestTree
+groupPassRemoveRedundantMoves =
+  testGroup
+    "passRemoveRedundantMoves"
+    [ testProperty "removes redundant moves between same locations" \loc -> do
+        let expr =
+              [ MovQ (X86Int.Reg RAX) loc
+              , MovQ loc (X86Int.Reg RAX)
+              ]
+        passRemoveRedundantMoves (X86Int.MkBlock expr) == X86Int.MkBlock [MovQ (X86Int.Reg RAX) loc]
     ]
