@@ -14,6 +14,7 @@ import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
+-- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
 passUniquify = loop mempty
  where
@@ -30,6 +31,7 @@ passUniquify = loop mempty
     LVar.BinApp op a b -> LVar.BinApp op <$> loop env a <*> loop env b
 {-# SPECIALIZE passUniquify :: LVar.Expr -> State Int LVar.Expr #-}
 
+-- | \(O(n)\) Transform the language into Monadic IR.
 passRemoveComplexOperands :: (MonadGensym m) => LVar.Expr -> m LVarMon.Expr
 passRemoveComplexOperands = \case
   LVar.Lit n -> pure $ LVarMon.Atom (Lit n)
@@ -75,6 +77,7 @@ passRemoveComplexOperands = \case
       pure $ LVarMon.Let tmpa ra (LVarMon.Let tmpb rb (LVarMon.BinApp op (Var tmpa) (Var tmpb)))
 {-# SPECIALIZE passRemoveComplexOperands :: LVar.Expr -> State Int LVarMon.Expr #-}
 
+-- | \(O(n)\) Transform expression-based IR into statement-based.
 passExplicateControl :: LVarMon.Expr -> CVar.Tail
 passExplicateControl = \case
   LVarMon.Atom atm -> CVar.Return (CVar.Atom atm)
@@ -90,6 +93,7 @@ passExplicateControl = \case
     LVarMon.UnApp op a -> CVar.Seq (CVar.Assign name (CVar.UnApp op a)) cont
     LVarMon.BinApp op a b -> CVar.Seq (CVar.Assign name (CVar.BinApp op a b)) cont
 
+-- | \(O(n)\) Lower IR into x86 instructions with variables.
 passSelectInstructions :: CVar.Tail -> X86Var.Block
 passSelectInstructions = \case
   CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX), Jmp "conclusion"]
@@ -144,6 +148,7 @@ passSelectInstructions = \case
       cname = Var name
     CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
 
+-- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block
 passAssignHomes (X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
@@ -173,6 +178,9 @@ passAssignHomes (X86Var.MkBlock xs) =
           modify \s -> s{X86Int.env = insert name arg env, X86Int.offset = offset'}
           pure arg
 
+{- | \(O(n)\) Patch instructions to make sure that each instruction adheres to the restriction that at most one argument
+an instruction may be a memory reference.
+-}
 passPatchInstructions :: X86Int.Block -> X86Int.Block
 passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
  where
@@ -191,6 +199,7 @@ passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
       ]
     i -> [i]
 
+-- | \(O(n)\) Remove redundant move instructions between same locations.
 passRemoveRedundantMoves :: X86Int.Block -> X86Int.Block
 passRemoveRedundantMoves (X86Int.MkBlock xs) = X86Int.MkBlock $ go [] xs
  where
