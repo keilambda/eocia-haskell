@@ -172,3 +172,21 @@ passAssignHomes (X86Var.MkBlock xs) =
               arg = X86Int.Deref offset' RBP
           modify \s -> s{X86Int.env = insert name arg env, X86Int.offset = offset'}
           pure arg
+
+passPatchInstructions :: X86Int.Block -> X86Int.Block
+passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
+ where
+  patch = \case
+    AddQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , AddQ (X86Int.Reg RAX) rhs
+      ]
+    SubQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , SubQ (X86Int.Reg RAX) rhs
+      ]
+    MovQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , MovQ (X86Int.Reg RAX) rhs
+      ]
+    i -> [i]
