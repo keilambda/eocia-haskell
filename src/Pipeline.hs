@@ -135,7 +135,7 @@ passSelectInstructions = \case
     CVar.BinApp op lhs (Var name') | name' == name -> case op of
       Add -> [AddQ (fromAtom lhs) (X86Var.Var name)]
       Sub -> [SubQ (fromAtom lhs) (X86Var.Var name)]
-    CVar.BinApp op a b | cname /= a && cname /= b -> case op of
+    CVar.BinApp op a b -> case op of
       Add ->
         [ MovQ (fromAtom a) (X86Var.Var name)
         , AddQ (fromAtom b) (X86Var.Var name)
@@ -144,9 +144,6 @@ passSelectInstructions = \case
         [ MovQ (fromAtom a) (X86Var.Var name)
         , SubQ (fromAtom b) (X86Var.Var name)
         ]
-     where
-      cname = Var name
-    CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block
