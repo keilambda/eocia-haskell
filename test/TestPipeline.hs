@@ -222,10 +222,10 @@ groupPassRemoveRedundantMoves :: TestTree
 groupPassRemoveRedundantMoves =
   testGroup
     "passRemoveRedundantMoves"
-    [ testProperty "removes redundant moves between same locations" \loc -> do
+    [ testProperty "removes redundant moves between same locations" \(loc, reg) -> do
         let expr =
-              [ MovQ (X86Int.Reg RAX) loc
-              , MovQ loc (X86Int.Reg RAX)
+              [ MovQ (X86Int.Reg reg) loc
+              , MovQ loc (X86Int.Reg reg)
               ]
-        passRemoveRedundantMoves (X86Int.MkBlock expr) == X86Int.MkBlock [MovQ (X86Int.Reg RAX) loc]
+        passRemoveRedundantMoves (X86Int.MkBlock expr) == X86Int.MkBlock [MovQ (X86Int.Reg reg) loc]
     ]
