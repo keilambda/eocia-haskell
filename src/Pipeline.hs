@@ -28,8 +28,7 @@ passUniquify = loop mempty
     e@(LVar.NulApp _) -> pure e
     LVar.UnApp op a -> LVar.UnApp op <$> loop env a
     LVar.BinApp op a b -> LVar.BinApp op <$> loop env a <*> loop env b
-
-{-# SPECIALISE passUniquify :: LVar.Expr -> State Int LVar.Expr #-}
+{-# SPECIALIZE passUniquify :: LVar.Expr -> State Int LVar.Expr #-}
 
 passRemoveComplexOperands :: (MonadGensym m) => LVar.Expr -> m LVarMon.Expr
 passRemoveComplexOperands = \case
@@ -74,8 +73,7 @@ passRemoveComplexOperands = \case
       tmpa <- genTmpName
       tmpb <- genTmpName
       pure $ LVarMon.Let tmpa ra (LVarMon.Let tmpb rb (LVarMon.BinApp op (Var tmpa) (Var tmpb)))
-
-{-# SPECIALISE passRemoveComplexOperands :: LVar.Expr -> State Int LVarMon.Expr #-}
+{-# SPECIALIZE passRemoveComplexOperands :: LVar.Expr -> State Int LVarMon.Expr #-}
 
 passExplicateControl :: LVarMon.Expr -> CVar.Tail
 passExplicateControl = \case
