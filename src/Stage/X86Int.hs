@@ -12,7 +12,7 @@ import Core (InstrF, Label, Name, Reg)
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Arg where
   pretty = \case
@@ -26,12 +26,16 @@ type Instr = InstrF Arg
 type Frame :: Type
 data Frame = MkFrame {env :: HashMap Name Arg, offset :: Int}
 
+emptyFrame :: Frame
+emptyFrame = MkFrame{env = mempty, offset = 0}
+
 instance HasField "size" Frame Int where
   getField MkFrame{offset} = let n = negate offset in (n `mod` 16) + n
 
 type Block :: Type
 newtype Block = MkBlock (List Instr)
   deriving stock (Show)
+  deriving newtype (Eq)
 
 instance Pretty Block where
   pretty (MkBlock xs) = vsep (map (align . pretty) xs)

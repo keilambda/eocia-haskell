@@ -10,10 +10,11 @@ import Test.Tasty.QuickCheck
 
 import Arbitrary ()
 import Core
-import Pipeline (passExplicateControl, passRemoveComplexOperands, passSelectInstructions, passUniquify)
+import Pipeline (passAssignHomes, passExplicateControl, passRemoveComplexOperands, passSelectInstructions, passUniquify)
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
+import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
 tests :: TestTree
@@ -24,6 +25,7 @@ tests =
     , groupPassRemoveComplexOperands
     , groupPassExplicateControl
     , groupPassSelectInstructions
+    , groupPassAssignHomes
     ]
 
 countVars :: LVar.Expr -> HashMap Name Int
@@ -162,3 +164,27 @@ groupPassSelectInstructions =
   fromOp = \case
     Add -> AddQ
     Sub -> SubQ
+
+groupPassAssignHomes :: TestTree
+groupPassAssignHomes =
+  testGroup
+    "passAssignHomes"
+    [ testCase "spills variables into stack" do
+        let expr =
+              [ MovQ (X86Var.Imm 32) (X86Var.Var "x")
+              , AddQ (X86Var.Imm 10) (X86Var.Var "x")
+              , MovQ (X86Var.Imm 52) (X86Var.Var "y")
+              , SubQ (X86Var.Imm 10) (X86Var.Var "y")
+              , MovQ (X86Var.Var "y") (X86Var.Reg RAX)
+              , Jmp "conclusion"
+              ]
+        evalState (passAssignHomes (X86Var.MkBlock expr)) X86Int.emptyFrame
+          @?= X86Int.MkBlock
+            [ MovQ (X86Int.Imm 32) (X86Int.Deref (-8) RBP)
+            , AddQ (X86Int.Imm 10) (X86Int.Deref (-8) RBP)
+            , MovQ (X86Int.Imm 52) (X86Int.Deref (-16) RBP)
+            , SubQ (X86Int.Imm 10) (X86Int.Deref (-16) RBP)
+            , MovQ (X86Int.Deref (-16) RBP) (X86Int.Reg RAX)
+            , Jmp "conclusion"
+            ]
+    ]

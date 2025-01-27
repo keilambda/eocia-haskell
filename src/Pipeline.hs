@@ -2,12 +2,16 @@
 
 module Pipeline (module Pipeline) where
 
-import Data.HashMap.Strict (findWithDefault, insert)
+import Control.Monad.State (State, get, modify)
+
+import Data.HashMap.Strict (findWithDefault, insert, (!?))
+import Data.Traversable (for)
 
 import Core
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
+import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
@@ -137,3 +141,32 @@ passSelectInstructions = \case
      where
       cname = Var name
     CVar.BinApp op a b -> fromBinOp op a b ++ rax2Var name
+
+passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block
+passAssignHomes (X86Var.MkBlock xs) =
+  X86Int.MkBlock <$> for xs \case
+    AddQ src tgt -> AddQ <$> spill src <*> spill tgt
+    SubQ src tgt -> SubQ <$> spill src <*> spill tgt
+    NegQ tgt -> NegQ <$> spill tgt
+    MovQ src tgt -> MovQ <$> spill src <*> spill tgt
+    PushQ tgt -> PushQ <$> spill tgt
+    PopQ tgt -> PopQ <$> spill tgt
+    CallQ lbl n -> pure (CallQ lbl n)
+    Jmp lbl -> pure (Jmp lbl)
+    Syscall -> pure Syscall
+    RetQ -> pure RetQ
+ where
+  spill :: X86Var.Arg -> State X86Int.Frame X86Int.Arg
+  spill = \case
+    X86Var.Imm n -> pure (X86Int.Imm n)
+    X86Var.Reg reg -> pure (X86Int.Reg reg)
+    X86Var.Deref n reg -> pure (X86Int.Deref n reg)
+    X86Var.Var name -> do
+      X86Int.MkFrame{env, offset} <- get
+      case env !? name of
+        Just arg -> pure arg
+        Nothing -> do
+          let offset' = offset - 8
+              arg = X86Int.Deref offset' RBP
+          modify \s -> s{X86Int.env = insert name arg env, X86Int.offset = offset'}
+          pure arg
