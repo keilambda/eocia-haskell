@@ -190,3 +190,11 @@ passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
       , MovQ (X86Int.Reg RAX) rhs
       ]
     i -> [i]
+
+passRemoveRedundantMoves :: X86Int.Block -> X86Int.Block
+passRemoveRedundantMoves (X86Int.MkBlock xs) = X86Int.MkBlock $ go [] xs
+ where
+  go acc [] = reverse acc
+  go acc (MovQ (X86Int.Reg r) tgt : MovQ src (X86Int.Reg r') : rest)
+    | r == r' && tgt == src = go acc (MovQ (X86Int.Reg r) tgt : rest)
+  go acc (y : ys) = go (y : acc) ys
