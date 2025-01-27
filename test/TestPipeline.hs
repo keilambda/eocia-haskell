@@ -10,7 +10,7 @@ import Test.Tasty.QuickCheck
 
 import Arbitrary ()
 import Core
-import Pipeline (passAssignHomes, passExplicateControl, passRemoveComplexOperands, passSelectInstructions, passUniquify)
+import Pipeline
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
@@ -26,6 +26,7 @@ tests =
     , groupPassExplicateControl
     , groupPassSelectInstructions
     , groupPassAssignHomes
+    , groupPassPatchInstructions
     ]
 
 countVars :: LVar.Expr -> HashMap Name Int
@@ -186,5 +187,32 @@ groupPassAssignHomes =
             , SubQ (X86Int.Imm 10) (X86Int.Deref (-16) RBP)
             , MovQ (X86Int.Deref (-16) RBP) (X86Int.Reg RAX)
             , Jmp "conclusion"
+            ]
+    ]
+
+groupPassPatchInstructions :: TestTree
+groupPassPatchInstructions =
+  testGroup
+    "passPatchInstructions"
+    [ testCase "patches addq double deref instruction" do
+        let expr = [AddQ (X86Int.Deref (-8) RBP) (X86Int.Deref (-16) RBP)]
+        passPatchInstructions (X86Int.MkBlock expr)
+          @?= X86Int.MkBlock
+            [ MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
+            , AddQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
+            ]
+    , testCase "patches subq double deref instruction" do
+        let expr = [SubQ (X86Int.Deref (-8) RBP) (X86Int.Deref (-16) RBP)]
+        passPatchInstructions (X86Int.MkBlock expr)
+          @?= X86Int.MkBlock
+            [ MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
+            , SubQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
+            ]
+    , testCase "patches movq double deref instruction" do
+        let expr = [MovQ (X86Int.Deref (-8) RBP) (X86Int.Deref (-16) RBP)]
+        passPatchInstructions (X86Int.MkBlock expr)
+          @?= X86Int.MkBlock
+            [ MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
+            , MovQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
             ]
     ]
