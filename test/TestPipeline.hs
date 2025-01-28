@@ -66,12 +66,12 @@ groupPassRemoveComplexOperands =
         evalState (passRemoveComplexOperands expr) (1 :: Int)
           @?= LVarMon.Let
             "x"
-            (LVarMon.Let "tmp.1" (LVarMon.neg (Lit 10)) (LVarMon.add (Lit 42) (Var "tmp.1")))
-            (LVarMon.add (Var "x") (Lit 10))
+            (LVarMon.Let "tmp.1" (LVarMon.UnApp Neg (Lit 10)) (LVarMon.BinApp Add (Lit 42) (Var "tmp.1")))
+            (LVarMon.BinApp Add (Var "x") (Lit 10))
     , testCase "does not simplify already simple expression" do
         let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
         evalState (passRemoveComplexOperands expr) (1 :: Int)
-          @?= LVarMon.Let "a" (LVarMon.lit 42) (LVarMon.Let "b" (LVarMon.var "a") (LVarMon.var "b"))
+          @?= LVarMon.Let "a" (LVarMon.Atom (Lit 42)) (LVarMon.Let "b" (LVarMon.Atom (Var "a")) (LVarMon.Atom (Var "b")))
     ]
 
 groupPassExplicateControl :: TestTree
@@ -80,9 +80,13 @@ groupPassExplicateControl =
     "passExplicateControl"
     [ testCase "converts expressions into statements ending with a return" do
         let let_ = LVarMon.Let
-            lit = LVarMon.lit
+            lit = LVarMon.Atom . Lit
             clit = CVar.Atom . Lit
-            expr = let_ "y" (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (Var "x.1") (Var "x.2")))) (LVarMon.var "y")
+            expr =
+              let_
+                "y"
+                (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (Var "x.1") (Var "x.2"))))
+                (LVarMon.Atom (Var "y"))
         passExplicateControl expr
           @?= CVar.Seq
             (CVar.Assign "x.1" (clit 20))
