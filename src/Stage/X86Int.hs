@@ -42,7 +42,7 @@ instance Pretty Block where
 
 type Program :: Type
 data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Program where
   pretty MkProgram{globl, blocks} =

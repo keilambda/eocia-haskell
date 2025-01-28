@@ -22,6 +22,8 @@ instance Arbitrary Label where
     first = ['a' .. 'z'] ++ ['A' .. 'Z'] ++ "_"
     rest = first ++ ['0' .. '9']
 
+instance Arbitrary Platform where arbitrary = elements [Linux, Darwin]
+
 instance Arbitrary NulOp where arbitrary = pure Read
 instance Arbitrary UnOp where arbitrary = pure Neg
 instance Arbitrary BinOp where arbitrary = elements [Add, Sub]

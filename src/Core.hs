@@ -42,6 +42,7 @@ instance Pretty Label where
 
 type Platform :: Type
 data Platform = Linux | Darwin
+  deriving stock (Show)
 
 resolveLabel :: Platform -> Label -> Label
 resolveLabel = \case

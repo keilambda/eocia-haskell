@@ -2,7 +2,7 @@ module TestPipeline (tests) where
 
 import Control.Monad.State.Strict (evalState)
 
-import Data.HashMap.Strict (HashMap, insertWith, unionWith)
+import Data.HashMap.Strict (HashMap, fromList, insertWith, unionWith)
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -28,6 +28,7 @@ tests =
     , groupPassAssignHomes
     , groupPassPatchInstructions
     , groupPassRemoveRedundantMoves
+    , groupPassGeneratePreludeAndConclusion
     ]
 
 countVars :: LVar.Expr -> HashMap Name Int
@@ -219,4 +220,39 @@ groupPassRemoveRedundantMoves =
               , MovQ loc (X86Int.Reg reg)
               ]
         passRemoveRedundantMoves (X86Int.MkBlock expr) == X86Int.MkBlock [MovQ (X86Int.Reg reg) loc]
+    ]
+
+groupPassGeneratePreludeAndConclusion :: TestTree
+groupPassGeneratePreludeAndConclusion =
+  testGroup
+    "passGeneratePreludeAndConclusion"
+    [ testCase "generates proper prelude and conclusion for Linux" do
+        let expr =
+              [ MovQ (X86Int.Imm 42) (X86Int.Deref (-8) RBP)
+              , MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
+              , MovQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
+              ]
+            prelude =
+              [ PushQ (X86Int.Reg RBP)
+              , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
+              , SubQ (X86Int.Imm 16) (X86Int.Reg RSP)
+              , Jmp lblMain
+              ]
+            main = expr ++ [Jmp lblConclusion]
+            conclusion =
+              [ AddQ (X86Int.Imm 16) (X86Int.Reg RSP)
+              , PopQ (X86Int.Reg RBP)
+              , MovQ (X86Int.Imm 60) (X86Int.Reg RAX)
+              , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
+              , Syscall
+              ]
+        passGeneratePreludeAndConclusion Linux 16 (X86Int.MkBlock expr)
+          @?= X86Int.MkProgram
+            lblPrelude
+            ( fromList
+                [ (lblPrelude, X86Int.MkBlock prelude)
+                , (lblMain, X86Int.MkBlock main)
+                , (lblConclusion, X86Int.MkBlock conclusion)
+                ]
+            )
     ]
