@@ -27,7 +27,7 @@ groupPretty =
         renderText (MovQ (Imm 42) (Reg RAX)) @?= "movq $42, %rax"
         renderText (PushQ (Reg RBP)) @?= "pushq %rbp"
         renderText (PopQ (Reg RBP)) @?= "popq %rbp"
-        renderText (CallQ "printf" 1 :: Instr) @?= "callq printf, 1"
+        renderText (CallQ "printf" 1 :: Instr) @?= "callq printf"
         renderText (Jmp "loop" :: Instr) @?= "jmp loop"
         renderText (Syscall :: Instr) @?= "syscall"
         renderText (RetQ :: Instr) @?= "retq"
@@ -47,7 +47,7 @@ groupPretty =
             , "main:"
             , "    movq $42, %rax"
             , "    pushq %rax"
-            , "    callq print, 1"
+            , "    callq print"
             , "    popq %rax"
             , "    retq"
             ]

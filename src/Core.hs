@@ -127,7 +127,7 @@ instance (Pretty arg) => Pretty (InstrF arg) where
     MovQ src dst -> pretty "movq" <+> pretty src <> comma <+> pretty dst
     PushQ arg -> pretty "pushq" <+> pretty arg
     PopQ arg -> pretty "popq" <+> pretty arg
-    CallQ lbl n -> pretty "callq" <+> pretty lbl <> comma <+> pretty n
+    CallQ lbl _ -> pretty "callq" <+> pretty lbl
     Jmp lbl -> pretty "jmp" <+> pretty lbl
     Syscall -> pretty "syscall"
     RetQ -> pretty "retq"
