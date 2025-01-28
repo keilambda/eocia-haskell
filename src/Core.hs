@@ -1,6 +1,8 @@
 module Core
   ( Name (MkName, getName)
   , Label (MkLabel, getLabel)
+  , Platform (Linux, Darwin)
+  , resolveLabel
   , Atom (Lit, Var)
   , NulOp (Read)
   , UnOp (Neg)
@@ -15,7 +17,7 @@ where
 import Data.Hashable (Hashable)
 import Data.Kind (Type)
 import Data.String (IsString)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
 import Prettyprinter
 
@@ -33,10 +35,18 @@ instance Pretty Name where
 type Label :: Type
 newtype Label = MkLabel {getLabel :: Text}
   deriving stock (Show)
-  deriving newtype (Eq, Hashable, IsString)
+  deriving newtype (Eq, Hashable, IsString, Semigroup)
 
 instance Pretty Label where
   pretty (MkLabel t) = pretty t
+
+type Platform :: Type
+data Platform = Linux | Darwin
+
+resolveLabel :: Platform -> Label -> Label
+resolveLabel = \case
+  Darwin -> (MkLabel (pack "_") <>)
+  Linux -> id
 
 type Atom :: Type
 data Atom = Lit Int | Var Name

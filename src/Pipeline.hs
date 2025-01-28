@@ -15,19 +15,10 @@ import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
-lblPrelude :: Label
-lblMain :: Label
-lblConclusion :: Label
-
-#ifdef darwin_HOST_OS
-lblPrelude = "_prelude"
-lblMain = "_main"
-lblConclusion = "_conclusion"
-#else
+lblPrelude, lblMain, lblConclusion :: Label
 lblPrelude = "prelude"
 lblMain = "main"
 lblConclusion = "conclusion"
-#endif
 
 -- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
@@ -111,10 +102,10 @@ passExplicateControl = \case
 -- | \(O(n)\) Lower IR into x86 instructions with variables.
 passSelectInstructions :: CVar.Tail -> X86Var.Block
 passSelectInstructions = \case
-  CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX), Jmp lblConclusion]
-  CVar.Return (CVar.NulApp op) -> X86Var.MkBlock $ fromNulOp op ++ [Jmp lblConclusion]
-  CVar.Return (CVar.UnApp op a) -> X86Var.MkBlock $ fromUnOp op a ++ [Jmp lblConclusion]
-  CVar.Return (CVar.BinApp op a b) -> X86Var.MkBlock $ fromBinOp op a b ++ [Jmp lblConclusion]
+  CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX)]
+  CVar.Return (CVar.NulApp op) -> X86Var.MkBlock $ fromNulOp op
+  CVar.Return (CVar.UnApp op a) -> X86Var.MkBlock $ fromUnOp op a
+  CVar.Return (CVar.BinApp op a b) -> X86Var.MkBlock $ fromBinOp op a b
   CVar.Seq stmt tail_ -> X86Var.MkBlock (fromStmt stmt ++ X86Var.getBlock (passSelectInstructions tail_))
  where
   fromAtom = \case
@@ -222,15 +213,18 @@ passRemoveRedundantMoves (X86Int.MkBlock xs) = X86Int.MkBlock $ go [] xs
   go acc (y : ys) = go (y : acc) ys
 
 -- | \(O(1)\) Generate prelude and conclusion and connect the blocks with jumps.
-passGeneratePreludeAndConclusion :: Int -> X86Int.Block -> X86Int.Program
-passGeneratePreludeAndConclusion frameSize (X86Int.MkBlock main) =
-  let prelude = if frameSize == 0 then [] else allocate frameSize
+passGeneratePreludeAndConclusion :: Platform -> Int -> X86Int.Block -> X86Int.Program
+passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
+  let lblMain_ = p `resolveLabel` lblMain
+      lblPrelude_ = p `resolveLabel` lblPrelude
+      lblConclusion_ = p `resolveLabel` lblConclusion
+      prelude = if frameSize == 0 then [] else allocate frameSize
       conclusion = if frameSize == 0 then [] else deallocate frameSize
-   in X86Int.MkProgram lblPrelude $
+   in X86Int.MkProgram lblPrelude_ $
         fromList
-          [ (lblPrelude, X86Int.MkBlock $ prelude ++ [Jmp lblMain])
-          , (lblMain, X86Int.MkBlock $ main)
-          , (lblConclusion, X86Int.MkBlock $ conclusion ++ exit)
+          [ (lblPrelude_, X86Int.MkBlock $ prelude ++ [Jmp lblMain_])
+          , (lblMain_, X86Int.MkBlock $ main ++ [Jmp lblConclusion_])
+          , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
           ]
  where
   allocate n =

@@ -114,11 +114,7 @@ groupPassSelectInstructions =
             , MovQ (reg RAX) (var "y")
             , -- return
               MovQ (var "y") (reg RAX)
-            , Jmp lblConclusion
             ]
-    , testProperty "always ends with jmp to conclusion" \e -> do
-        let (X86Var.MkBlock instr) = passSelectInstructions e
-        last instr == Jmp lblConclusion
     , testCase "optimizes compound assignment (left)" do
         let expr =
               CVar.Seq
@@ -128,7 +124,6 @@ groupPassSelectInstructions =
           @?= X86Var.MkBlock
             [ AddQ (imm 42) (var "x")
             , MovQ (var "x") (reg RAX)
-            , Jmp lblConclusion
             ]
     , testCase "optimizes compound assignment (right)" do
         let expr =
@@ -139,7 +134,6 @@ groupPassSelectInstructions =
           @?= X86Var.MkBlock
             [ AddQ (imm 42) (var "y")
             , MovQ (var "y") (reg RAX)
-            , Jmp lblConclusion
             ]
     , testProperty "distinct operands optimization" $ forAll
         (arbitrary `suchThat` \(_, a, b) -> let cvar = Var "x" in cvar /= a && cvar /= b)
@@ -153,7 +147,6 @@ groupPassSelectInstructions =
               [ MovQ (fromAtom atma) (var "x")
               , (fromOp op) (fromAtom atmb) (var "x")
               , MovQ (var "x") (reg RAX)
-              , Jmp lblConclusion
               ]
     ]
  where
@@ -178,7 +171,6 @@ groupPassAssignHomes =
               , MovQ (X86Var.Imm 52) (X86Var.Var "y")
               , SubQ (X86Var.Imm 10) (X86Var.Var "y")
               , MovQ (X86Var.Var "y") (X86Var.Reg RAX)
-              , Jmp lblConclusion
               ]
         evalState (passAssignHomes (X86Var.MkBlock expr)) X86Int.emptyFrame
           @?= X86Int.MkBlock
@@ -187,7 +179,6 @@ groupPassAssignHomes =
             , MovQ (X86Int.Imm 52) (X86Int.Deref (-16) RBP)
             , SubQ (X86Int.Imm 10) (X86Int.Deref (-16) RBP)
             , MovQ (X86Int.Deref (-16) RBP) (X86Int.Reg RAX)
-            , Jmp lblConclusion
             ]
     ]
 
