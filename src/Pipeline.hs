@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pipeline (module Pipeline) where
@@ -13,6 +14,20 @@ import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
+
+lblPrelude :: Label
+lblMain :: Label
+lblConclusion :: Label
+
+#ifdef darwin_HOST_OS
+lblPrelude = "_prelude"
+lblMain = "_main"
+lblConclusion = "_conclusion"
+#else
+lblPrelude = "prelude"
+lblMain = "main"
+lblConclusion = "conclusion"
+#endif
 
 -- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
@@ -96,10 +111,10 @@ passExplicateControl = \case
 -- | \(O(n)\) Lower IR into x86 instructions with variables.
 passSelectInstructions :: CVar.Tail -> X86Var.Block
 passSelectInstructions = \case
-  CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX), Jmp "conclusion"]
-  CVar.Return (CVar.NulApp op) -> X86Var.MkBlock $ fromNulOp op ++ [Jmp "conclusion"]
-  CVar.Return (CVar.UnApp op a) -> X86Var.MkBlock $ fromUnOp op a ++ [Jmp "conclusion"]
-  CVar.Return (CVar.BinApp op a b) -> X86Var.MkBlock $ fromBinOp op a b ++ [Jmp "conclusion"]
+  CVar.Return (CVar.Atom atom) -> X86Var.MkBlock [MovQ (fromAtom atom) (X86Var.Reg RAX), Jmp lblConclusion]
+  CVar.Return (CVar.NulApp op) -> X86Var.MkBlock $ fromNulOp op ++ [Jmp lblConclusion]
+  CVar.Return (CVar.UnApp op a) -> X86Var.MkBlock $ fromUnOp op a ++ [Jmp lblConclusion]
+  CVar.Return (CVar.BinApp op a b) -> X86Var.MkBlock $ fromBinOp op a b ++ [Jmp lblConclusion]
   CVar.Seq stmt tail_ -> X86Var.MkBlock (fromStmt stmt ++ X86Var.getBlock (passSelectInstructions tail_))
  where
   fromAtom = \case
