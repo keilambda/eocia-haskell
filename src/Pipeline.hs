@@ -15,11 +15,6 @@ import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
-lblPrelude, lblMain, lblConclusion :: Label
-lblPrelude = "prelude"
-lblMain = "main"
-lblConclusion = "conclusion"
-
 -- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
 passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
 passUniquify = loop mempty
@@ -212,6 +207,16 @@ passRemoveRedundantMoves (X86Int.MkBlock xs) = X86Int.MkBlock $ go [] xs
     | r == r' && tgt == src = go acc (MovQ (X86Int.Reg r) tgt : rest)
   go acc (y : ys) = go (y : acc) ys
 
+lblPrelude, lblMain, lblConclusion :: Label
+lblPrelude = "prelude"
+lblMain = "main"
+lblConclusion = "conclusion"
+
+exitSyscall :: Platform -> Int
+exitSyscall = \case
+  Linux -> 60
+  Darwin -> 0x2000001
+
 -- | \(O(1)\) Generate prelude and conclusion and connect the blocks with jumps.
 passGeneratePreludeAndConclusion :: Platform -> Int -> X86Int.Block -> X86Int.Program
 passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
@@ -232,7 +237,7 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
         )
           ++ [PopQ (X86Int.Reg RBP)]
       exit =
-        [ MovQ (X86Int.Imm 60) (X86Int.Reg RAX)
+        [ MovQ (X86Int.Imm (exitSyscall p)) (X86Int.Reg RAX)
         , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
         , Syscall
         ]

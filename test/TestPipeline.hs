@@ -236,9 +236,9 @@ groupPassGeneratePreludeAndConclusion =
               [ PushQ (X86Int.Reg RBP)
               , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
               , SubQ (X86Int.Imm 16) (X86Int.Reg RSP)
-              , Jmp lblMain
+              , Jmp "main"
               ]
-            main = expr ++ [Jmp lblConclusion]
+            main = expr ++ [Jmp "conclusion"]
             conclusion =
               [ AddQ (X86Int.Imm 16) (X86Int.Reg RSP)
               , PopQ (X86Int.Reg RBP)
@@ -248,11 +248,40 @@ groupPassGeneratePreludeAndConclusion =
               ]
         passGeneratePreludeAndConclusion Linux 16 (X86Int.MkBlock expr)
           @?= X86Int.MkProgram
-            lblPrelude
+            "prelude"
             ( fromList
-                [ (lblPrelude, X86Int.MkBlock prelude)
-                , (lblMain, X86Int.MkBlock main)
-                , (lblConclusion, X86Int.MkBlock conclusion)
+                [ ("prelude", X86Int.MkBlock prelude)
+                , ("main", X86Int.MkBlock main)
+                , ("conclusion", X86Int.MkBlock conclusion)
+                ]
+            )
+    , testCase "generates proper prelude and conclusion for Darwin" do
+        let expr =
+              [ MovQ (X86Int.Imm 42) (X86Int.Deref (-8) RBP)
+              , MovQ (X86Int.Deref (-8) RBP) (X86Int.Reg RAX)
+              , MovQ (X86Int.Reg RAX) (X86Int.Deref (-16) RBP)
+              ]
+            prelude =
+              [ PushQ (X86Int.Reg RBP)
+              , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
+              , SubQ (X86Int.Imm 16) (X86Int.Reg RSP)
+              , Jmp "_main"
+              ]
+            main = expr ++ [Jmp "_conclusion"]
+            conclusion =
+              [ AddQ (X86Int.Imm 16) (X86Int.Reg RSP)
+              , PopQ (X86Int.Reg RBP)
+              , MovQ (X86Int.Imm 0x2000001) (X86Int.Reg RAX)
+              , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
+              , Syscall
+              ]
+        passGeneratePreludeAndConclusion Darwin 16 (X86Int.MkBlock expr)
+          @?= X86Int.MkProgram
+            "_prelude"
+            ( fromList
+                [ ("_prelude", X86Int.MkBlock prelude)
+                , ("_main", X86Int.MkBlock main)
+                , ("_conclusion", X86Int.MkBlock conclusion)
                 ]
             )
     ]
