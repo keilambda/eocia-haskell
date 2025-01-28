@@ -218,26 +218,27 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
   let lblMain_ = p `resolveLabel` lblMain
       lblPrelude_ = p `resolveLabel` lblPrelude
       lblConclusion_ = p `resolveLabel` lblConclusion
-      prelude = if frameSize == 0 then [] else allocate frameSize
-      conclusion = if frameSize == 0 then [] else deallocate frameSize
+      prelude =
+        [ PushQ (X86Int.Reg RBP)
+        , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
+        ]
+          ++ if frameSize == 0
+            then []
+            else [SubQ (X86Int.Imm frameSize) (X86Int.Reg RSP)] -- allocate
+      conclusion =
+        ( if frameSize == 0
+            then []
+            else [AddQ (X86Int.Imm frameSize) (X86Int.Reg RSP)] -- deallocate
+        )
+          ++ [PopQ (X86Int.Reg RBP)]
+      exit =
+        [ MovQ (X86Int.Imm 60) (X86Int.Reg RAX)
+        , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
+        , Syscall
+        ]
    in X86Int.MkProgram lblPrelude_ $
         fromList
           [ (lblPrelude_, X86Int.MkBlock $ prelude ++ [Jmp lblMain_])
           , (lblMain_, X86Int.MkBlock $ main ++ [Jmp lblConclusion_])
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
           ]
- where
-  allocate n =
-    [ PushQ (X86Int.Reg RBP)
-    , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
-    , SubQ (X86Int.Imm n) (X86Int.Reg RSP)
-    ]
-  deallocate n =
-    [ AddQ (X86Int.Imm n) (X86Int.Reg RSP)
-    , PopQ (X86Int.Reg RBP)
-    ]
-  exit =
-    [ MovQ (X86Int.Imm 60) (X86Int.Reg RAX)
-    , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
-    , Syscall
-    ]
