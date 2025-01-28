@@ -1,9 +1,11 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pipeline (module Pipeline) where
 
-import Control.Monad.State.Strict (MonadState, State, get, modify)
+import Control.Monad ((<=<))
+import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
 import Data.HashMap.Strict (findWithDefault, fromList, insert, (!?))
 import Data.Traversable (for)
@@ -247,3 +249,12 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
           , (lblMain_, X86Int.MkBlock $ main ++ [Jmp lblConclusion_])
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
           ]
+
+compile :: (MonadGensym m) => Platform -> LVar.Expr -> m X86Int.Program
+compile platform lvar = do
+  lvarmon <- (passRemoveComplexOperands <=< passUniquify) lvar
+  let cvar = passExplicateControl lvarmon
+  let xvar = passSelectInstructions cvar
+  let (xint, frame) = runState (passAssignHomes xvar) X86Int.emptyFrame
+  let patched = passRemoveRedundantMoves . passPatchInstructions $ xint
+  pure $ passGeneratePreludeAndConclusion platform frame.size patched
