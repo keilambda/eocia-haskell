@@ -5,7 +5,7 @@ module Pipeline (module Pipeline) where
 
 import Control.Monad.State.Strict (MonadState, State, get, modify)
 
-import Data.HashMap.Strict (findWithDefault, insert, (!?))
+import Data.HashMap.Strict (findWithDefault, fromList, insert, (!?))
 import Data.Traversable (for)
 
 import Core
@@ -220,3 +220,30 @@ passRemoveRedundantMoves (X86Int.MkBlock xs) = X86Int.MkBlock $ go [] xs
   go acc (MovQ (X86Int.Reg r) tgt : MovQ src (X86Int.Reg r') : rest)
     | r == r' && tgt == src = go acc (MovQ (X86Int.Reg r) tgt : rest)
   go acc (y : ys) = go (y : acc) ys
+
+-- | \(O(1)\) Generate prelude and conclusion and connect the blocks with jumps.
+passGeneratePreludeAndConclusion :: Int -> X86Int.Block -> X86Int.Program
+passGeneratePreludeAndConclusion frameSize (X86Int.MkBlock main) =
+  let prelude = if frameSize == 0 then [] else allocate frameSize
+      conclusion = if frameSize == 0 then [] else deallocate frameSize
+   in X86Int.MkProgram lblPrelude $
+        fromList
+          [ (lblPrelude, X86Int.MkBlock $ prelude ++ [Jmp lblMain])
+          , (lblMain, X86Int.MkBlock $ main)
+          , (lblConclusion, X86Int.MkBlock $ conclusion ++ exit)
+          ]
+ where
+  allocate n =
+    [ PushQ (X86Int.Reg RBP)
+    , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
+    , SubQ (X86Int.Imm n) (X86Int.Reg RSP)
+    ]
+  deallocate n =
+    [ AddQ (X86Int.Imm n) (X86Int.Reg RSP)
+    , PopQ (X86Int.Reg RBP)
+    ]
+  exit =
+    [ MovQ (X86Int.Imm 60) (X86Int.Reg RAX)
+    , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
+    , Syscall
+    ]
