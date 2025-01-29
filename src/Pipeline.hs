@@ -157,28 +157,28 @@ data Liveness = MkLiveness
   }
 
 uncoverLive :: X86Var.Block -> List Liveness
-uncoverLive (X86Var.MkBlock xs) = go mempty [] (reverse xs)
+uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
  where
   go _ acc [] = acc
-  go after acc (i : is) =
-    let before = (after `difference` writes i) <> reads_ i
-     in go before (MkLiveness before after : acc) is
+  go after acc (x : xs) =
+    let before = (after `difference` def x) <> use x
+     in go before (MkLiveness before after : acc) xs
 
-  writes = \case
+  def = \case
     MovQ _ (X86Var.Var tgt) -> singleton tgt
     AddQ _ (X86Var.Var tgt) -> singleton tgt
     SubQ _ (X86Var.Var tgt) -> singleton tgt
     NegQ (X86Var.Var tgt) -> singleton tgt
     _ -> mempty
 
-  reads_ = \case
+  use = \case
     MovQ (X86Var.Var src) _ -> singleton src
-    AddQ (X86Var.Var src) tgt -> singleton src <> readDst tgt
-    SubQ (X86Var.Var src) tgt -> singleton src <> readDst tgt
+    AddQ (X86Var.Var src) tgt -> singleton src <> useTgt tgt
+    SubQ (X86Var.Var src) tgt -> singleton src <> useTgt tgt
     NegQ (X86Var.Var src) -> singleton src
     _ -> mempty
 
-  readDst = \case
+  useTgt = \case
     X86Var.Var tgt -> singleton tgt
     _ -> mempty
 
