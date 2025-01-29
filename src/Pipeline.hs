@@ -7,6 +7,9 @@ import Control.Monad ((<=<))
 import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
 import Data.HashMap.Strict (findWithDefault, fromList, insert, (!?))
+import Data.HashSet (HashSet, difference, singleton)
+import Data.Kind (Type)
+import Data.List (List)
 import Data.Traversable (for)
 
 import Core
@@ -146,6 +149,38 @@ passSelectInstructions = \case
         [ MovQ (fromAtom a) (X86Var.Var name)
         , SubQ (fromAtom b) (X86Var.Var name)
         ]
+
+type Liveness :: Type
+data Liveness = MkLiveness
+  { before :: HashSet Name
+  , after :: HashSet Name
+  }
+
+uncoverLive :: X86Var.Block -> List Liveness
+uncoverLive (X86Var.MkBlock xs) = go mempty [] (reverse xs)
+ where
+  go _ acc [] = acc
+  go after acc (i : is) =
+    let before = (after `difference` writes i) <> reads_ i
+     in go before (MkLiveness before after : acc) is
+
+  writes = \case
+    MovQ _ (X86Var.Var tgt) -> singleton tgt
+    AddQ _ (X86Var.Var tgt) -> singleton tgt
+    SubQ _ (X86Var.Var tgt) -> singleton tgt
+    NegQ (X86Var.Var tgt) -> singleton tgt
+    _ -> mempty
+
+  reads_ = \case
+    MovQ (X86Var.Var src) _ -> singleton src
+    AddQ (X86Var.Var src) tgt -> singleton src <> readDst tgt
+    SubQ (X86Var.Var src) tgt -> singleton src <> readDst tgt
+    NegQ (X86Var.Var src) -> singleton src
+    _ -> mempty
+
+  readDst = \case
+    X86Var.Var tgt -> singleton tgt
+    _ -> mempty
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block
