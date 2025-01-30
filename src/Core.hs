@@ -19,6 +19,8 @@ import Data.Kind (Type)
 import Data.String (IsString)
 import Data.Text (Text, pack)
 
+import GHC.Generics (Generic)
+
 import Prettyprinter
 
 import Core.Gensym
@@ -83,7 +85,8 @@ instance Pretty BinOp where
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (Hashable)
 
 instance Pretty Reg where
   pretty = \case

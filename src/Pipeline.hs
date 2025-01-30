@@ -152,35 +152,43 @@ passSelectInstructions = \case
 
 type Liveness :: Type
 data Liveness = MkLiveness
-  { before :: HashSet Name
-  , after :: HashSet Name
+  { before :: HashSet X86Var.Arg
+  , instr :: X86Var.Instr
+  , after :: HashSet X86Var.Arg
   }
+  deriving stock (Show)
 
+{- | \(O(n \log m)\) Block-level local liveness analysis.
+
+TODO: Handle 'CallQ' and 'Jmp' when compiler starts generating multiple blocks.
+-}
 uncoverLive :: X86Var.Block -> List Liveness
 uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
  where
   go _ acc [] = acc
   go after acc (x : xs) =
     let before = (after `difference` def x) <> use x
-     in go before (MkLiveness before after : acc) xs
+     in go before (MkLiveness before x after : acc) xs
 
   def = \case
-    MovQ _ (X86Var.Var tgt) -> singleton tgt
-    AddQ _ (X86Var.Var tgt) -> singleton tgt
-    SubQ _ (X86Var.Var tgt) -> singleton tgt
-    NegQ (X86Var.Var tgt) -> singleton tgt
+    MovQ _ tgt -> maybe mempty singleton (filterArg tgt)
+    AddQ _ tgt -> maybe mempty singleton (filterArg tgt)
+    SubQ _ tgt -> maybe mempty singleton (filterArg tgt)
+    NegQ tgt -> maybe mempty singleton (filterArg tgt)
     _ -> mempty
 
   use = \case
-    MovQ (X86Var.Var src) _ -> singleton src
-    AddQ (X86Var.Var src) tgt -> singleton src <> useTgt tgt
-    SubQ (X86Var.Var src) tgt -> singleton src <> useTgt tgt
-    NegQ (X86Var.Var src) -> singleton src
+    MovQ src _ -> maybe mempty singleton (filterArg src)
+    AddQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
+    SubQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
+    NegQ tgt -> singleton tgt
     _ -> mempty
 
-  useTgt = \case
-    X86Var.Var tgt -> singleton tgt
-    _ -> mempty
+  filterArg = \case
+    arg@(X86Var.Reg _) -> Just arg
+    arg@(X86Var.Var _) -> Just arg
+    X86Var.Imm _ -> Nothing
+    X86Var.Deref _ _ -> Nothing
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block

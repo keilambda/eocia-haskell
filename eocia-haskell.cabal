@@ -7,7 +7,9 @@ build-type:    Simple
 
 common defaults
   default-language:   GHC2024
-  default-extensions: BlockArguments
+  default-extensions:
+    BlockArguments
+    DeriveAnyClass
 
 common warnings
   ghc-options:

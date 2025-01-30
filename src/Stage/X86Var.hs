@@ -1,7 +1,10 @@
 module Stage.X86Var (module Stage.X86Var) where
 
+import Data.Hashable (Hashable)
 import Data.Kind (Type)
 import Data.List (List)
+
+import GHC.Generics (Generic)
 
 import Prettyprinter
 
@@ -13,7 +16,8 @@ data Arg
   | Reg Reg
   | Deref Int Reg
   | Var Name
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (Hashable)
 
 instance Pretty Arg where
   pretty = \case
