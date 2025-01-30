@@ -8,6 +8,7 @@ import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
 import Data.HashMap.Strict (findWithDefault, fromList, insert, (!?))
 import Data.HashSet (HashSet, difference, singleton)
+import Data.HashSet qualified as HashSet
 import Data.Kind (Type)
 import Data.List (List)
 import Data.Traversable (for)
@@ -160,7 +161,7 @@ data Liveness = MkLiveness
 
 {- | \(O(n \log m)\) Block-level local liveness analysis.
 
-TODO: Handle 'CallQ' and 'Jmp' when compiler starts generating multiple blocks.
+TODO: Handle 'Jmp' when compiler starts generating multiple blocks.
 -}
 uncoverLive :: X86Var.Block -> List Liveness
 uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
@@ -175,6 +176,7 @@ uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
     AddQ _ tgt -> maybe mempty singleton (filterArg tgt)
     SubQ _ tgt -> maybe mempty singleton (filterArg tgt)
     NegQ tgt -> maybe mempty singleton (filterArg tgt)
+    CallQ _ _ -> HashSet.fromList [X86Var.Reg reg | reg <- callerSaved]
     _ -> mempty
 
   use = \case
@@ -182,13 +184,14 @@ uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
     AddQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
     SubQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
     NegQ tgt -> maybe mempty singleton (filterArg tgt)
+    CallQ _ n -> HashSet.fromList [X86Var.Reg reg | reg <- take n argumentPassing]
     _ -> mempty
 
   filterArg = \case
     arg@(X86Var.Reg _) -> Just arg
     arg@(X86Var.Var _) -> Just arg
+    arg@(X86Var.Deref _ _) -> Just arg
     X86Var.Imm _ -> Nothing
-    X86Var.Deref _ _ -> Nothing
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block
