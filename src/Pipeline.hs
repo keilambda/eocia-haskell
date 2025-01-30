@@ -181,7 +181,7 @@ uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
     MovQ src _ -> maybe mempty singleton (filterArg src)
     AddQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
     SubQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
-    NegQ tgt -> singleton tgt
+    NegQ tgt -> maybe mempty singleton (filterArg tgt)
     _ -> mempty
 
   filterArg = \case
