@@ -1,8 +1,12 @@
 module Core
   ( Name (MkName, getName)
   , Label (MkLabel, getLabel)
+  , lblMain
+  , lblPrelude
+  , lblConclusion
   , Platform (Linux, Darwin)
   , resolveLabel
+  , exitSyscall
   , Atom (Lit, Var)
   , NulOp (Read)
   , UnOp (Neg)
@@ -42,6 +46,11 @@ newtype Label = MkLabel {getLabel :: Text}
 instance Pretty Label where
   pretty (MkLabel t) = pretty t
 
+lblPrelude, lblMain, lblConclusion :: Label
+lblPrelude = MkLabel (pack "prelude")
+lblMain = MkLabel (pack "main")
+lblConclusion = MkLabel (pack "conclusion")
+
 type Platform :: Type
 data Platform = Linux | Darwin
   deriving stock (Show)
@@ -50,6 +59,11 @@ resolveLabel :: Platform -> Label -> Label
 resolveLabel = \case
   Darwin -> (MkLabel (pack "_") <>)
   Linux -> id
+
+exitSyscall :: Platform -> Int
+exitSyscall = \case
+  Linux -> 60
+  Darwin -> 0x2000001
 
 type Atom :: Type
 data Atom = Lit Int | Var Name

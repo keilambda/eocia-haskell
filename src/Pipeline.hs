@@ -242,16 +242,6 @@ passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
       ]
     i -> [i]
 
-lblPrelude, lblMain, lblConclusion :: Label
-lblPrelude = "prelude"
-lblMain = "main"
-lblConclusion = "conclusion"
-
-exitSyscall :: Platform -> Int
-exitSyscall = \case
-  Linux -> 60
-  Darwin -> 0x2000001
-
 -- | \(O(1)\) Generate prelude and conclusion and connect the blocks with jumps.
 passGeneratePreludeAndConclusion :: Platform -> Int -> X86Int.Block -> X86Int.Program
 passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
