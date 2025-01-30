@@ -13,6 +13,9 @@ module Core
   , BinOp (Add, Sub)
   , Reg (..)
   , InstrF (..)
+  , callerSaved
+  , calleeSaved
+  , argumentPassing
   , module Core.Gensym
   , module Core.Pretty
   )
@@ -20,6 +23,7 @@ where
 
 import Data.Hashable (Hashable)
 import Data.Kind (Type)
+import Data.List (List)
 import Data.String (IsString)
 import Data.Text (Text, pack)
 
@@ -120,6 +124,11 @@ instance Pretty Reg where
     R13 -> pretty "r13"
     R14 -> pretty "r14"
     R15 -> pretty "r15"
+
+callerSaved, calleeSaved, argumentPassing :: List Reg
+callerSaved = [RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11]
+calleeSaved = [RSP, RBP, RBX, R12, R13, R14, R15]
+argumentPassing = [RDI, RSI, RDX, RCX, R8, R9]
 
 type role InstrF representational
 type InstrF :: Type -> Type
