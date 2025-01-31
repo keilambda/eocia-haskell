@@ -3,6 +3,8 @@
 
 module Pipeline (module Pipeline) where
 
+import Algebra.Graph.Undirected (Graph, edges)
+
 import Control.Monad ((<=<))
 import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
@@ -196,6 +198,51 @@ uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
     arg@(X86Var.Var _) -> Just arg
     arg@(X86Var.Deref _ _) -> Just arg
     X86Var.Imm _ -> Nothing
+
+type InterferenceGraph :: Type
+type InterferenceGraph = Graph X86Var.Arg
+
+buildInterference :: List Liveness -> InterferenceGraph
+buildInterference = edges . concatMap getEdges
+ where
+  getEdges MkLiveness{instr, after} = case instr of
+    MovQ s d ->
+      [ (d, v)
+      | v <- HashSet.toList after
+      , v /= d
+      , v /= s
+      , d `canInterfere` v
+      ]
+    CallQ _ _ ->
+      [ (X86Var.Reg reg, v)
+      | reg <- callerSaved
+      , v <- HashSet.toList after
+      , v /= X86Var.Reg reg
+      , X86Var.Reg reg `canInterfere` v
+      ]
+    _ ->
+      [ (d, v)
+      | d <- HashSet.toList (writes instr)
+      , v <- HashSet.toList after
+      , v /= d
+      , d `canInterfere` v
+      ]
+
+  writes :: X86Var.Instr -> HashSet X86Var.Arg
+  writes = \case
+    AddQ _ tgt -> singleton tgt
+    SubQ _ tgt -> singleton tgt
+    NegQ tgt -> singleton tgt
+    MovQ _ tgt -> singleton tgt
+    PushQ _ -> singleton (X86Var.Reg RSP)
+    PopQ _ -> singleton (X86Var.Reg RSP)
+    _ -> mempty
+
+  canInterfere = \cases
+    (X86Var.Var _) (X86Var.Var _) -> True
+    (X86Var.Var _) (X86Var.Reg _) -> True
+    (X86Var.Reg _) (X86Var.Var _) -> True
+    _ _ -> False
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block

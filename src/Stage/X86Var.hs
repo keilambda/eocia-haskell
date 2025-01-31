@@ -16,7 +16,7 @@ data Arg
   | Reg Reg
   | Deref Int Reg
   | Var Name
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (Hashable)
 
 instance Pretty Arg where

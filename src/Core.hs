@@ -37,7 +37,7 @@ import Core.Pretty
 type Name :: Type
 newtype Name = MkName {getName :: Text}
   deriving stock (Show)
-  deriving newtype (Eq, Hashable, IsString)
+  deriving newtype (Eq, Ord, Hashable, IsString)
 
 instance Pretty Name where
   pretty (MkName t) = pretty t
@@ -103,7 +103,7 @@ instance Pretty BinOp where
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (Hashable)
 
 instance Pretty Reg where
