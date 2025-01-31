@@ -6,7 +6,7 @@ module Pipeline (module Pipeline) where
 import Control.Monad ((<=<))
 import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
-import Data.HashMap.Strict (findWithDefault, fromList, insert, (!?))
+import Data.HashMap.Strict (fromList, insert, (!?))
 import Data.HashSet (HashSet, difference, singleton)
 import Data.HashSet qualified as HashSet
 import Data.Kind (Type)
@@ -26,7 +26,11 @@ passUniquify = loop mempty
  where
   loop env = \case
     e@(LVar.Lit _) -> pure e
-    LVar.Var n -> pure $ LVar.Var (findWithDefault n n env)
+    LVar.Var name -> case env !? name of
+      Just name' -> pure $ LVar.Var name'
+      Nothing -> do
+        name' <- MkName <$> gensym (getName name <> ".")
+        pure $ LVar.Var name'
     LVar.Let name expr body -> do
       name' <- MkName <$> gensym (getName name <> ".")
       expr' <- loop env expr

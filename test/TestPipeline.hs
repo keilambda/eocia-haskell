@@ -49,11 +49,21 @@ groupPassUniquify =
     , testProperty "preserves semantics" \expr -> ioProperty do
         orig <- LVar.runInterpExpr expr
         uniq <- LVar.runInterpExpr (evalState (passUniquify expr) (0 :: Int))
-        pure $ orig == uniq
+        pure $ case (orig, uniq) of
+          (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True
+          _ -> orig == uniq
     , testCase "preserves semantics" do
         let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
             expr' = evalState (passUniquify expr) (0 :: Int)
         renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
+    , testCase "uniquifies unbound variables" do
+        let expr = LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
+            expr' = evalState (passUniquify expr) (0 :: Int)
+        expr' @?= LVar.Let "x.0" (LVar.Var "x.1") (LVar.Var "y.2")
+    , testCase "does not advance the counter on bound variables" do
+        let expr = LVar.Let "x" (LVar.Lit 42) $ LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
+            expr' = evalState (passUniquify expr) (0 :: Int)
+        expr' @?= LVar.Let "x.0" (LVar.Lit 42) (LVar.Let "x.1" (LVar.Var "x.0") (LVar.Var "y.2"))
     ]
 
 groupPassRemoveComplexOperands :: TestTree
