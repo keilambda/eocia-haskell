@@ -21,6 +21,7 @@ module Core
   )
 where
 
+import Data.HashSet qualified as HashSet
 import Data.Hashable (Hashable)
 import Data.Kind (Type)
 import Data.List (List)
@@ -157,3 +158,8 @@ instance (Pretty arg) => Pretty (InstrF arg) where
     Jmp lbl -> pretty "jmp" <+> pretty lbl
     Syscall -> pretty "syscall"
     RetQ -> pretty "retq"
+
+instance (Pretty a) => Pretty (HashSet.HashSet a) where
+  pretty = \case
+    xs | HashSet.null xs -> pretty "∅"
+    xs -> encloseSep (pretty "{") (pretty "}") (pretty ", ") (map pretty (HashSet.toList xs))

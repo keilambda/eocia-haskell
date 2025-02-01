@@ -16,6 +16,7 @@ common warnings
     -Wall -Wextra -Weverything -Wcompat -Wno-implicit-prelude
     -Wno-unsafe -Wno-missing-safe-haskell-mode
     -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
+    -Wno-orphans
 
 library
   import:          warnings, defaults

@@ -15,6 +15,8 @@ import Data.Kind (Type)
 import Data.List (List)
 import Data.Traversable (for)
 
+import Prettyprinter
+
 import Core
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
@@ -165,12 +167,24 @@ data Liveness = MkLiveness
   }
   deriving stock (Show)
 
+instance Pretty Liveness where
+  pretty l = pretty l.before <+> "→" <+> pretty l.instr <+> "→" <+> pretty l.after
+
+type LivenessTrace :: Type
+newtype LivenessTrace = MkLivenessTrace (List Liveness)
+  deriving stock (Show)
+
+instance Pretty LivenessTrace where
+  pretty (MkLivenessTrace trace) = case trace of
+    [] -> "∅"
+    x : xs -> pretty x.before <+> foldMap (\l -> "→" <+> pretty l.instr <+> "→" <+> pretty l.after <> space) (x : xs)
+
 {- | \(O(n \log m)\) Block-level local liveness analysis.
 
 TODO: Handle 'Jmp' when compiler starts generating multiple blocks.
 -}
-uncoverLive :: X86Var.Block -> List Liveness
-uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
+uncoverLive :: X86Var.Block -> LivenessTrace
+uncoverLive (X86Var.MkBlock block) = MkLivenessTrace $ go mempty [] (reverse block)
  where
   go _ acc [] = acc
   go after acc (x : xs) =
@@ -202,8 +216,8 @@ uncoverLive (X86Var.MkBlock block) = go mempty [] (reverse block)
 type InterferenceGraph :: Type
 type InterferenceGraph = Graph X86Var.Arg
 
-buildInterference :: List Liveness -> InterferenceGraph
-buildInterference = edges . concatMap getEdges
+buildInterference :: LivenessTrace -> InterferenceGraph
+buildInterference (MkLivenessTrace trace) = edges (concatMap getEdges trace)
  where
   getEdges MkLiveness{instr, after} = case instr of
     MovQ s d ->
