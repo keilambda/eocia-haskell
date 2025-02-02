@@ -183,8 +183,8 @@ instance Pretty LivenessTrace where
 
 TODO: Handle 'Jmp' when compiler starts generating multiple blocks.
 -}
-uncoverLive :: X86Var.Block -> LivenessTrace
-uncoverLive (X86Var.MkBlock block) = MkLivenessTrace $ go mempty [] (reverse block)
+uncoverLive :: HashSet X86Var.Arg -> X86Var.Block -> LivenessTrace
+uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace $ go prev [] (reverse block)
  where
   go _ acc [] = acc
   go after acc (x : xs) =
@@ -253,6 +253,7 @@ buildInterference (MkLivenessTrace trace) = edges (concatMap getEdges trace)
     _ -> mempty
 
   canInterfere = \cases
+    (X86Var.Reg _) (X86Var.Reg _) -> True
     (X86Var.Var _) (X86Var.Var _) -> True
     (X86Var.Var _) (X86Var.Reg _) -> True
     (X86Var.Reg _) (X86Var.Var _) -> True
