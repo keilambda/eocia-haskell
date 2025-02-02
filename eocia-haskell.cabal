@@ -68,6 +68,7 @@ test-suite eocia-haskell-test
     TestX86Int
 
   build-depends:
+    , algebraic-graphs
     , base                  >=4.7   && <5
     , eocia-haskell
     , mtl

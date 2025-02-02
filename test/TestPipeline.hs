@@ -1,8 +1,12 @@
 module TestPipeline (tests) where
 
+import Algebra.Graph.Undirected qualified as Undirected
+
 import Control.Monad.State.Strict (evalState)
 
 import Data.HashMap.Strict (HashMap, fromList, insertWith, unionWith)
+import Data.HashSet (singleton)
+import Data.HashSet qualified as HashSet
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -28,6 +32,8 @@ tests =
     , groupPassAssignHomes
     , groupPassPatchInstructions
     , groupPassGeneratePreludeAndConclusion
+    , groupUncoverLive
+    , groupBuildInterference
     ]
 
 countVars :: LVar.Expr -> HashMap Name Int
@@ -285,4 +291,74 @@ groupPassGeneratePreludeAndConclusion =
                 , ("_conclusion", X86Int.MkBlock conclusion)
                 ]
             )
+    ]
+
+groupUncoverLive :: TestTree
+groupUncoverLive =
+  testGroup
+    "uncoverLive"
+    [ testCase "collects the liveness trace" do
+        let imm = X86Var.Imm
+            var = X86Var.Var
+            instrs =
+              [ MovQ (imm 1) (var "v")
+              , MovQ (imm 42) (var "w")
+              , MovQ (var "v") (var "x")
+              , Jmp "conclusion"
+              ]
+            trace =
+              [ MkLiveness mempty (MovQ (imm 1) (var "v")) (HashSet.fromList [var "v"])
+              , MkLiveness (HashSet.fromList [var "v"]) (MovQ (imm 42) (var "w")) (HashSet.fromList [var "v"])
+              , MkLiveness (HashSet.fromList [var "v"]) (MovQ (var "v") (var "x")) mempty
+              , MkLiveness mempty (Jmp "conclusion") mempty
+              ]
+        (uncoverLive mempty (X86Var.MkBlock instrs)) @?= (MkLivenessTrace trace)
+    ]
+
+groupBuildInterference :: TestTree
+groupBuildInterference =
+  testGroup
+    "buildInterference"
+    [ testCase "builds the graph with correct interference rules" do
+        let imm = X86Var.Imm
+            var = X86Var.Var
+            reg = X86Var.Reg
+            instrs =
+              [ MovQ (imm 1) (var "v") -- v interferes with rsp
+              , MovQ (imm 42) (var "w") -- w interferes with v and rsp
+              , MovQ (var "v") (var "x") -- x interferes with w and rsp
+              , AddQ (imm 7) (var "x") -- x interferes with w and rsp
+              , MovQ (var "x") (var "y") -- y interferes with w and rsp but not x
+              , MovQ (var "x") (var "z") -- z interferes with w, y, and rsp
+              , AddQ (var "w") (var "z") -- z interferes with y and rsp
+              , MovQ (var "y") (var "t") -- t interferes with z and rsp
+              , NegQ (var "t") -- t interferes with z and rsp
+              , MovQ (var "z") (reg RAX) -- rax interferes with t and rsp
+              , AddQ (var "t") (reg RAX) -- rax interferes with rsp
+              , Jmp "conclusion" -- no interference
+              ]
+         in buildInterference (uncoverLive (singleton (reg RSP)) (X86Var.MkBlock instrs))
+              @?= Undirected.edges
+                -- v with rsp
+                [ (var "v", reg RSP)
+                , -- w with v and rsp
+                  (var "w", var "v")
+                , (var "w", reg RSP)
+                , -- x with w and rsp
+                  (var "x", var "w")
+                , (var "x", reg RSP)
+                , -- y with w and rsp but not x
+                  (var "y", var "w")
+                , (var "y", reg RSP)
+                , -- z with w, y, and rsp
+                  (var "z", var "w")
+                , (var "z", var "y")
+                , (var "z", reg RSP)
+                , -- t with z and rsp
+                  (var "t", var "z")
+                , (var "t", reg RSP)
+                , -- rax with t and rsp
+                  (reg RAX, var "t")
+                , (reg RAX, reg RSP)
+                ]
     ]

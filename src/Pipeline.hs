@@ -166,7 +166,7 @@ data Liveness = MkLiveness
   , instr :: X86Var.Instr
   , after :: HashSet X86Var.Arg
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance Pretty Liveness where
   pretty l = pretty l.before <+> "→" <+> pretty l.instr <+> "→" <+> pretty l.after
@@ -174,6 +174,7 @@ instance Pretty Liveness where
 type LivenessTrace :: Type
 newtype LivenessTrace = MkLivenessTrace (List Liveness)
   deriving stock (Show)
+  deriving newtype (Eq)
 
 instance Pretty LivenessTrace where
   pretty (MkLivenessTrace trace) = case trace of
