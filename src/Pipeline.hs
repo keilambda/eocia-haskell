@@ -3,12 +3,13 @@
 
 module Pipeline (module Pipeline) where
 
-import Algebra.Graph.Undirected (Graph, edges)
+import Algebra.Graph.Undirected qualified as Undirected
 
 import Control.Monad ((<=<))
 import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 
-import Data.HashMap.Strict (fromList, insert, (!?))
+import Data.HashMap.Strict (insert, (!?))
+import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (HashSet, difference, singleton)
 import Data.HashSet qualified as HashSet
 import Data.Kind (Type)
@@ -214,10 +215,10 @@ uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace $ go prev [] (reverse 
     X86Var.Imm _ -> Nothing
 
 type InterferenceGraph :: Type
-type InterferenceGraph = Graph X86Var.Arg
+type InterferenceGraph = Undirected.Graph X86Var.Arg
 
 buildInterference :: LivenessTrace -> InterferenceGraph
-buildInterference (MkLivenessTrace trace) = edges (concatMap getEdges trace)
+buildInterference (MkLivenessTrace trace) = Undirected.edges (concatMap getEdges trace)
  where
   getEdges MkLiveness{instr, after} = case instr of
     MovQ s d ->
@@ -336,7 +337,7 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
         , Syscall
         ]
    in X86Int.MkProgram lblPrelude_ $
-        fromList
+        HashMap.fromList
           [ (lblPrelude_, X86Int.MkBlock $ prelude ++ [Jmp lblMain_])
           , (lblMain_, X86Int.MkBlock $ main ++ [Jmp lblConclusion_])
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
