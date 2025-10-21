@@ -1,5 +1,5 @@
 {
-  description = "Essentials of Compilation: an Incremental Approach in Haskell";
+  description = "Essentials of Compilation: An Incremental Approach in Haskell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
