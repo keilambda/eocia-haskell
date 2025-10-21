@@ -1,10 +1,8 @@
 module Stage.LInt (module Stage.LInt) where
 
-import Data.Kind (Type)
-
-import Prettyprinter
-
 import Core (BinOp (..), NulOp (..), UnOp (..))
+import Data.Kind (Type)
+import Prettyprinter
 
 type Expr :: Type
 data Expr

@@ -1,12 +1,11 @@
 module TestLInt (tests) where
 
-import Test.Tasty
-import Test.Tasty.HUnit hiding (assert)
-import Test.Tasty.QuickCheck
-
 import Arbitrary ()
 import Core (renderText)
 import Stage.LInt
+import Test.Tasty
+import Test.Tasty.HUnit hiding (assert)
+import Test.Tasty.QuickCheck
 
 checkPE :: Expr -> Assertion
 checkPE e = do

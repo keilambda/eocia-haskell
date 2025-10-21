@@ -1,13 +1,11 @@
 module TestX86Int (tests) where
 
+import Core (InstrF (..), Reg (..), renderText)
 import Data.HashMap.Strict (fromList)
 import Data.Text qualified as T
-
+import Stage.X86Int
 import Test.Tasty
 import Test.Tasty.HUnit
-
-import Core (InstrF (..), Reg (..), renderText)
-import Stage.X86Int
 
 tests :: TestTree
 tests = testGroup "X86Int" [groupPretty]

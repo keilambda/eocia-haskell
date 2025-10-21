@@ -1,18 +1,15 @@
 module Stage.X86Int (module Stage.X86Int) where
 
+import Core (InstrF, Label, Name, Reg)
 import Data.HashMap.Strict (HashMap, toList)
 import Data.Kind (Type)
 import Data.List (List)
-
-import Prettyprinter
-
 import GHC.Records (HasField (getField))
-
-import Core (InstrF, Label, Name, Reg)
+import Prettyprinter
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Arg where
   pretty = \case
@@ -42,7 +39,7 @@ instance Pretty Block where
 
 type Program :: Type
 data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Program where
   pretty MkProgram{globl, blocks} =

@@ -21,24 +21,21 @@ module Core
   )
 where
 
+import Core.Gensym
+import Core.Pretty
 import Data.HashSet qualified as HashSet
 import Data.Hashable (Hashable)
 import Data.Kind (Type)
 import Data.List (List)
 import Data.String (IsString)
 import Data.Text (Text, pack)
-
 import GHC.Generics (Generic)
-
 import Prettyprinter
-
-import Core.Gensym
-import Core.Pretty
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}
   deriving stock (Show)
-  deriving newtype (Eq, Ord, Hashable, IsString)
+  deriving newtype (Eq, Hashable, IsString, Ord)
 
 instance Pretty Name where
   pretty (MkName t) = pretty t
@@ -72,7 +69,7 @@ exitSyscall = \case
 
 type Atom :: Type
 data Atom = Lit Int | Var Name
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Atom where
   pretty = \case
@@ -81,21 +78,21 @@ instance Pretty Atom where
 
 type NulOp :: Type
 data NulOp = Read
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty NulOp where
   pretty Read = pretty "read"
 
 type UnOp :: Type
 data UnOp = Neg
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty UnOp where
   pretty Neg = pretty "-"
 
 type BinOp :: Type
 data BinOp = Add | Sub
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty BinOp where
   pretty = \case
@@ -104,7 +101,7 @@ instance Pretty BinOp where
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
-  deriving stock (Show, Eq, Ord, Generic)
+  deriving stock (Eq, Generic, Ord, Show)
   deriving anyclass (Hashable)
 
 instance Pretty Reg where
@@ -144,7 +141,7 @@ data InstrF arg
   | Jmp Label
   | Syscall
   | RetQ
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance (Pretty arg) => Pretty (InstrF arg) where
   pretty = \case

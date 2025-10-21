@@ -4,10 +4,9 @@
 module Pipeline (module Pipeline) where
 
 import Algebra.Graph.Undirected qualified as Undirected
-
 import Control.Monad ((<=<))
 import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
-
+import Core
 import Data.HashMap.Strict (insert, (!?))
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (HashSet, difference, singleton)
@@ -15,10 +14,7 @@ import Data.HashSet qualified as HashSet
 import Data.Kind (Type)
 import Data.List (List)
 import Data.Traversable (for)
-
 import Prettyprinter
-
-import Core
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
@@ -166,7 +162,7 @@ data Liveness = MkLiveness
   , instr :: X86Var.Instr
   , after :: HashSet X86Var.Arg
   }
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Liveness where
   pretty l = pretty l.before <+> "→" <+> pretty l.instr <+> "→" <+> pretty l.after
@@ -323,22 +319,17 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
         [ PushQ (X86Int.Reg RBP)
         , MovQ (X86Int.Reg RSP) (X86Int.Reg RBP)
         ]
-          ++ if frameSize == 0
-            then []
-            else [SubQ (X86Int.Imm frameSize) (X86Int.Reg RSP)] -- allocate
+          ++ ([SubQ (X86Int.Imm frameSize) (X86Int.Reg RSP) | frameSize /= 0]) -- allocate
       conclusion =
-        ( if frameSize == 0
-            then []
-            else [AddQ (X86Int.Imm frameSize) (X86Int.Reg RSP)] -- deallocate
-        )
+        ([AddQ (X86Int.Imm frameSize) (X86Int.Reg RSP) | frameSize /= 0]) -- deallocate
           ++ [PopQ (X86Int.Reg RBP)]
       exit =
         [ MovQ (X86Int.Imm (exitSyscall p)) (X86Int.Reg RAX)
         , MovQ (X86Int.Imm 0) (X86Int.Reg RDI)
         , Syscall
         ]
-   in X86Int.MkProgram lblPrelude_ $
-        HashMap.fromList
+   in X86Int.MkProgram lblPrelude_
+        $ HashMap.fromList
           [ (lblPrelude_, X86Int.MkBlock $ prelude ++ [Jmp lblMain_])
           , (lblMain_, X86Int.MkBlock $ main ++ [Jmp lblConclusion_])
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)

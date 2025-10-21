@@ -1,11 +1,10 @@
 module TestLVar (tests) where
 
-import Test.Tasty
-import Test.Tasty.HUnit hiding (assert)
-
 import Arbitrary ()
 import Core (renderText)
 import Stage.LVar
+import Test.Tasty
+import Test.Tasty.HUnit hiding (assert)
 
 shouldEvalTo :: Expr -> Either LVarErr Int -> IO ()
 shouldEvalTo expr expected = do

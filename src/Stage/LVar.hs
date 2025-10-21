@@ -4,16 +4,13 @@ module Stage.LVar (module Stage.LVar) where
 
 import Control.Monad.Except (ExceptT, MonadError (throwError), runExceptT)
 import Control.Monad.IO.Class (liftIO)
-
+import Core (BinOp (..), Name, NulOp (..), UnOp (..))
 import Data.HashMap.Strict (HashMap, insert, (!?))
 import Data.Kind (Type)
 import Data.Text (Text, pattern Empty)
 import Data.Text.IO qualified as TIO
 import Data.Text.Read (decimal)
-
 import Prettyprinter
-
-import Core (BinOp (..), Name, NulOp (..), UnOp (..))
 
 type Expr :: Type
 data Expr
@@ -23,7 +20,7 @@ data Expr
   | NulApp NulOp
   | UnApp UnOp Expr
   | BinApp BinOp Expr Expr
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Expr where
   pretty = \case
@@ -53,7 +50,7 @@ type LVarErr :: Type
 data LVarErr
   = UnboundVariable Name
   | InvalidReadInput Text
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 interpExpr :: Env -> Expr -> ExceptT LVarErr IO Int
 interpExpr env = \case
@@ -67,9 +64,9 @@ interpExpr env = \case
     case decimal str of
       Right (r, Empty) -> pure r
       _ -> throwError (InvalidReadInput str)
-  UnApp Neg a -> negate <$> (interpExpr env a)
-  BinApp Add a b -> (+) <$> (interpExpr env a) <*> (interpExpr env b)
-  BinApp Sub a b -> (-) <$> (interpExpr env a) <*> (interpExpr env b)
+  UnApp Neg a -> negate <$> interpExpr env a
+  BinApp Add a b -> (+) <$> interpExpr env a <*> interpExpr env b
+  BinApp Sub a b -> (-) <$> interpExpr env a <*> interpExpr env b
 
 runInterpExpr :: Expr -> IO (Either LVarErr Int)
 runInterpExpr e = runExceptT (interpExpr mempty e)

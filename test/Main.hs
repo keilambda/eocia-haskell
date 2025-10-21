@@ -1,7 +1,6 @@
 module Main (main) where
 
 import Test.Tasty (TestTree, defaultMain, testGroup)
-
 import TestCVar qualified
 import TestLInt qualified
 import TestLVar qualified
