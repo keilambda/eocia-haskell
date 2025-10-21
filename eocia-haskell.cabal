@@ -18,8 +18,18 @@ common warnings
     -Wno-missing-local-signatures -Wno-missing-import-lists -haddock
     -Wno-orphans
 
+common dependencies
+  build-depends:
+    , algebraic-graphs
+    , base
+    , hashable
+    , mtl
+    , prettyprinter
+    , text
+    , unordered-containers
+
 library
-  import:          warnings, defaults
+  import:          warnings, defaults, dependencies
   ghc-options:     -O2
   hs-source-dirs:  src
   exposed-modules:
@@ -34,26 +44,15 @@ library
     Stage.X86Int
     Stage.X86Var
 
-  build-depends:
-    , algebraic-graphs
-    , base                  >=4.7   && <5
-    , hashable
-    , mtl
-    , prettyprinter
-    , text                  ==2.1.2
-    , unordered-containers
-
 executable eocia-haskell
-  import:         warnings, defaults
+  import:         warnings, defaults, dependencies
   ghc-options:    -O2
   hs-source-dirs: app
   main-is:        Main.hs
-  build-depends:
-    , base           >=4.7 && <5
-    , eocia-haskell
+  build-depends:  eocia-haskell
 
 test-suite eocia-haskell-test
-  import:             warnings, defaults
+  import:             warnings, defaults, dependencies
   default-extensions: OverloadedStrings
   ghc-options:        -O2 -Wno-orphans
   type:               exitcode-stdio-1.0
@@ -68,12 +67,7 @@ test-suite eocia-haskell-test
     TestX86Int
 
   build-depends:
-    , algebraic-graphs
-    , base                  >=4.7   && <5
     , eocia-haskell
-    , mtl
     , tasty
     , tasty-hunit
     , tasty-quickcheck
-    , text                  ==2.1.2
-    , unordered-containers
