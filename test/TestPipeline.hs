@@ -1,25 +1,21 @@
 module TestPipeline (tests) where
 
 import Algebra.Graph.Undirected qualified as Undirected
-
+import Arbitrary ()
 import Control.Monad.State.Strict (evalState)
-
+import Core
 import Data.HashMap.Strict (HashMap, fromList, insertWith, unionWith)
 import Data.HashSet (singleton)
 import Data.HashSet qualified as HashSet
-
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
-import Arbitrary ()
-import Core
 import Pipeline
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 
 tests :: TestTree
 tests =
@@ -165,7 +161,7 @@ groupPassSelectInstructions =
           passSelectInstructions expr
             == X86Var.MkBlock
               [ MovQ (fromAtom atma) (var "x")
-              , (fromOp op) (fromAtom atmb) (var "x")
+              , fromOp op (fromAtom atmb) (var "x")
               , MovQ (var "x") (reg RAX)
               ]
     ]
@@ -312,7 +308,7 @@ groupUncoverLive =
               , MkLiveness (HashSet.fromList [var "v"]) (MovQ (var "v") (var "x")) mempty
               , MkLiveness mempty (Jmp "conclusion") mempty
               ]
-        (uncoverLive mempty (X86Var.MkBlock instrs)) @?= (MkLivenessTrace trace)
+        uncoverLive mempty (X86Var.MkBlock instrs) @?= MkLivenessTrace trace
     ]
 
 groupBuildInterference :: TestTree

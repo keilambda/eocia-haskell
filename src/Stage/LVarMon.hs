@@ -1,10 +1,8 @@
 module Stage.LVarMon (module Stage.LVarMon) where
 
-import Data.Kind (Type)
-
-import Prettyprinter
-
 import Core (Atom (..), BinOp (..), Name, NulOp (..), UnOp (..))
+import Data.Kind (Type)
+import Prettyprinter
 
 type Expr :: Type
 data Expr
@@ -13,7 +11,7 @@ data Expr
   | NulApp NulOp
   | UnApp UnOp Atom
   | BinApp BinOp Atom Atom
-  deriving stock (Show, Eq)
+  deriving stock (Eq, Show)
 
 instance Pretty Expr where
   pretty = \case

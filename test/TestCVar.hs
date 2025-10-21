@@ -1,10 +1,9 @@
 module TestCVar (tests) where
 
-import Test.Tasty
-import Test.Tasty.HUnit
-
 import Core (Atom (..), BinOp (..), UnOp (..), renderText)
 import Stage.CVar
+import Test.Tasty
+import Test.Tasty.HUnit
 
 tests :: TestTree
 tests = testGroup "CVar" [groupPretty]

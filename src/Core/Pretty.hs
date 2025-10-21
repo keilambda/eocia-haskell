@@ -5,7 +5,6 @@ module Core.Pretty
 
 import Data.Text (Text)
 import Data.Text.IO qualified as TIO
-
 import Prettyprinter
 import Prettyprinter.Render.Text (renderStrict)
 
