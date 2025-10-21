@@ -51,16 +51,16 @@ isExpr = \case
   Lit _ -> True
   NulApp Read -> True
   UnApp Neg a -> isExpr a
-  BinApp Add a b -> (isExpr a) && (isExpr b)
-  BinApp Sub a b -> (isExpr a) && (isExpr b)
+  BinApp Add a b -> isExpr a && isExpr b
+  BinApp Sub a b -> isExpr a && isExpr b
 
 interpExpr :: Expr -> IO Int
 interpExpr = \case
   Lit n -> pure n
   NulApp Read -> read <$> getLine
-  UnApp Neg a -> negate <$> (interpExpr a)
-  BinApp Add a b -> (+) <$> (interpExpr a) <*> (interpExpr b)
-  BinApp Sub a b -> (-) <$> (interpExpr a) <*> (interpExpr b)
+  UnApp Neg a -> negate <$> interpExpr a
+  BinApp Add a b -> (+) <$> interpExpr a <*> interpExpr b
+  BinApp Sub a b -> (-) <$> interpExpr a <*> interpExpr b
 
 peNeg :: Expr -> Expr
 peNeg = \case

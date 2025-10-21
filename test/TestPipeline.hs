@@ -161,7 +161,7 @@ groupPassSelectInstructions =
           passSelectInstructions expr
             == X86Var.MkBlock
               [ MovQ (fromAtom atma) (var "x")
-              , (fromOp op) (fromAtom atmb) (var "x")
+              , fromOp op (fromAtom atmb) (var "x")
               , MovQ (var "x") (reg RAX)
               ]
     ]
@@ -308,7 +308,7 @@ groupUncoverLive =
               , MkLiveness (HashSet.fromList [var "v"]) (MovQ (var "v") (var "x")) mempty
               , MkLiveness mempty (Jmp "conclusion") mempty
               ]
-        (uncoverLive mempty (X86Var.MkBlock instrs)) @?= (MkLivenessTrace trace)
+        uncoverLive mempty (X86Var.MkBlock instrs) @?= MkLivenessTrace trace
     ]
 
 groupBuildInterference :: TestTree
