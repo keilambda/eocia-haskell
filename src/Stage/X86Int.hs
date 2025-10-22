@@ -41,6 +41,6 @@ data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
 
 instance Pretty Program where
   pretty MkProgram{globl, blocks} =
-    pretty ".globl" <+> pretty globl <> hardline <> vsep (map ln (HashMap.toList blocks)) <> line
+    pretty ".globl" <+> pretty globl <> hardline <> vsep (map ln (HashMap.toList blocks))
    where
     ln (lbl, block) = pretty lbl <> colon <> line <> indent 4 (pretty block)

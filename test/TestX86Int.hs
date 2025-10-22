@@ -2,7 +2,6 @@ module TestX86Int (tests) where
 
 import Core (InstrF (..), Reg (..), renderText)
 import Data.HashMap.Strict qualified as HashMap
-import Data.Text qualified as Text
 import Stage.X86Int
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -40,13 +39,13 @@ groupPretty =
                 ]
             prog = MkProgram{globl = "main", blocks = HashMap.fromList [("main", block)]}
         renderText prog
-          @?= Text.unlines
-            [ ".globl main"
-            , "main:"
-            , "    movq $42, %rax"
-            , "    pushq %rax"
-            , "    callq print"
-            , "    popq %rax"
-            , "    retq"
-            ]
+          @?= """
+              .globl main
+              main:
+                  movq $42, %rax
+                  pushq %rax
+                  callq print
+                  popq %rax
+                  retq
+              """
     ]
