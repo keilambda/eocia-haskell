@@ -1,11 +1,7 @@
 module Stage.X86Var (module Stage.X86Var) where
 
 import Core (InstrF, Name, Reg)
-import Data.Hashable (Hashable)
-import Data.Kind (Type)
-import Data.List (List)
-import GHC.Generics (Generic)
-import Prettyprinter
+import Pre
 
 type Arg :: Type
 data Arg

@@ -2,12 +2,12 @@ module TestPipeline (tests) where
 
 import Algebra.Graph.Undirected qualified as Undirected
 import Arbitrary ()
-import Control.Monad.State.Strict (evalState)
 import Core
-import Data.HashMap.Strict (HashMap, fromList, insertWith, unionWith)
+import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (singleton)
 import Data.HashSet qualified as HashSet
 import Pipeline
+import Pre
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
@@ -36,10 +36,10 @@ countVars :: LVar.Expr -> HashMap Name Int
 countVars = \case
   LVar.Lit _ -> mempty
   LVar.Var _ -> mempty
-  LVar.Let name expr body -> insertWith (+) name 1 (unionWith (+) (countVars expr) (countVars body))
+  LVar.Let name expr body -> HashMap.insertWith (+) name 1 (HashMap.unionWith (+) (countVars expr) (countVars body))
   LVar.NulApp _ -> mempty
   LVar.UnApp _ a -> countVars a
-  LVar.BinApp _ a b -> unionWith (+) (countVars a) (countVars b)
+  LVar.BinApp _ a b -> HashMap.unionWith (+) (countVars a) (countVars b)
 
 groupPassUniquify :: TestTree
 groupPassUniquify =
@@ -252,7 +252,7 @@ groupPassGeneratePreludeAndConclusion =
         passGeneratePreludeAndConclusion Linux 16 (X86Int.MkBlock expr)
           @?= X86Int.MkProgram
             "prelude"
-            ( fromList
+            ( HashMap.fromList
                 [ ("prelude", X86Int.MkBlock prelude)
                 , ("main", X86Int.MkBlock main)
                 , ("conclusion", X86Int.MkBlock conclusion)
@@ -281,7 +281,7 @@ groupPassGeneratePreludeAndConclusion =
         passGeneratePreludeAndConclusion Darwin 16 (X86Int.MkBlock expr)
           @?= X86Int.MkProgram
             "_prelude"
-            ( fromList
+            ( HashMap.fromList
                 [ ("_prelude", X86Int.MkBlock prelude)
                 , ("_main", X86Int.MkBlock main)
                 , ("_conclusion", X86Int.MkBlock conclusion)

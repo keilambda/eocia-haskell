@@ -1,7 +1,7 @@
 module Arbitrary () where
 
 import Core
-import Data.Text (pack)
+import Data.Text qualified as Text
 import Stage.CVar qualified as CVar
 import Stage.LInt qualified as LInt
 import Stage.LVar qualified as LVar
@@ -9,16 +9,16 @@ import Stage.X86Int qualified as X86Int
 import Test.Tasty.QuickCheck
 
 instance Arbitrary Name where
-  arbitrary = MkName . pack <$> ((:) <$> elements first <*> listOf (elements rest))
+  arbitrary = MkName . Text.pack <$> ((:) <$> elements first <*> listOf (elements rest))
    where
     first = ['a' .. 'z'] ++ ['A' .. 'Z'] ++ "-_!$%&*+/:<=>?@^~"
     rest = first ++ ['0' .. '9']
 
 instance Arbitrary Label where
-  arbitrary = MkLabel . pack <$> ((:) <$> elements first <*> listOf (elements rest))
+  arbitrary = MkLabel . Text.pack <$> ((:) <$> elements first <*> listOf (elements rest))
    where
-    first = ['a' .. 'z'] ++ ['A' .. 'Z'] ++ "_"
-    rest = first ++ ['0' .. '9']
+    first = ['a' .. 'z'] <> ['A' .. 'Z'] <> "_"
+    rest = first <> ['0' .. '9']
 
 instance Arbitrary Platform where arbitrary = elements [Linux, Darwin]
 

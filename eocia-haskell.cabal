@@ -33,20 +33,23 @@ common dependencies
     , unordered-containers
 
 library
-  import:          warnings, defaults, dependencies
-  ghc-options:     -O2
-  hs-source-dirs:  src
+  import:             warnings, defaults, dependencies
+  ghc-options:        -O2
+  hs-source-dirs:     src
   exposed-modules:
     Core
     Core.Gensym
     Core.Pretty
     Pipeline
+    Pre
     Stage.CVar
     Stage.LInt
     Stage.LVar
     Stage.LVarMon
     Stage.X86Int
     Stage.X86Var
+
+  default-extensions: NoImplicitPrelude
 
 executable eocia-haskell
   import:         warnings, defaults, dependencies

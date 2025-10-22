@@ -2,15 +2,12 @@
 
 module Stage.LVar (module Stage.LVar) where
 
-import Control.Monad.Except (ExceptT, MonadError (throwError), runExceptT)
-import Control.Monad.IO.Class (liftIO)
 import Core (BinOp (..), Name, NulOp (..), UnOp (..))
-import Data.HashMap.Strict (HashMap, insert, (!?))
-import Data.Kind (Type)
-import Data.Text (Text, pattern Empty)
-import Data.Text.IO qualified as TIO
-import Data.Text.Read (decimal)
-import Prettyprinter
+import Data.HashMap.Strict qualified as HashMap
+import Data.Text (pattern Empty)
+import Data.Text.IO qualified as Text
+import Data.Text.Read qualified as Text
+import Pre
 
 type Expr :: Type
 data Expr
@@ -55,13 +52,13 @@ data LVarErr
 interpExpr :: Env -> Expr -> ExceptT LVarErr IO Int
 interpExpr env = \case
   Lit n -> pure n
-  Var n -> maybe (throwError (UnboundVariable n)) (interpExpr env) (env !? n)
+  Var n -> maybe (throwError (UnboundVariable n)) (interpExpr env) (HashMap.lookup n env)
   Let n e body -> do
     e' <- interpExpr env e
-    interpExpr (insert n (Lit e') env) body
+    interpExpr (HashMap.insert n (Lit e') env) body
   NulApp Read -> do
-    str <- liftIO TIO.getLine
-    case decimal str of
+    str <- liftIO Text.getLine
+    case Text.decimal str of
       Right (r, Empty) -> pure r
       _ -> throwError (InvalidReadInput str)
   UnApp Neg a -> negate <$> interpExpr env a

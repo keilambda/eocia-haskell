@@ -1,8 +1,7 @@
 module Stage.LVarMon (module Stage.LVarMon) where
 
 import Core (Atom (..), BinOp (..), Name, NulOp (..), UnOp (..))
-import Data.Kind (Type)
-import Prettyprinter
+import Pre
 
 type Expr :: Type
 data Expr

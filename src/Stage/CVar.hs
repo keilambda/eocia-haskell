@@ -1,8 +1,7 @@
 module Stage.CVar (module Stage.CVar) where
 
 import Core (Atom, BinOp, Name (MkName), NulOp, UnOp)
-import Data.Kind (Type)
-import Prettyprinter
+import Pre
 
 type Expr :: Type
 data Expr

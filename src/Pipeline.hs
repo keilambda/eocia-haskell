@@ -4,17 +4,11 @@
 module Pipeline (module Pipeline) where
 
 import Algebra.Graph.Undirected qualified as Undirected
-import Control.Monad ((<=<))
-import Control.Monad.State.Strict (MonadState, State, get, modify, runState)
 import Core
-import Data.HashMap.Strict (insert, (!?))
 import Data.HashMap.Strict qualified as HashMap
-import Data.HashSet (HashSet, difference, singleton)
+import Data.HashSet (difference)
 import Data.HashSet qualified as HashSet
-import Data.Kind (Type)
-import Data.List (List)
-import Data.Traversable (for)
-import Prettyprinter
+import Pre
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
 import Stage.LVarMon qualified as LVarMon
@@ -27,7 +21,7 @@ passUniquify = loop mempty
  where
   loop env = \case
     e@(LVar.Lit _) -> pure e
-    LVar.Var name -> case env !? name of
+    LVar.Var name -> case HashMap.lookup name env of
       Just name' -> pure $ LVar.Var name'
       Nothing -> do
         name' <- MkName <$> gensym (getName name <> ".")
@@ -35,7 +29,7 @@ passUniquify = loop mempty
     LVar.Let name expr body -> do
       name' <- MkName <$> gensym (getName name <> ".")
       expr' <- loop env expr
-      body' <- loop (insert name name' env) body
+      body' <- loop (HashMap.insert name name' env) body
       pure $ LVar.Let name' expr' body'
     e@(LVar.NulApp _) -> pure e
     LVar.UnApp op a -> LVar.UnApp op <$> loop env a
@@ -190,18 +184,18 @@ uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace $ go prev [] (reverse 
      in go before (MkLiveness before x after : acc) xs
 
   def = \case
-    MovQ _ tgt -> maybe mempty singleton (filterArg tgt)
-    AddQ _ tgt -> maybe mempty singleton (filterArg tgt)
-    SubQ _ tgt -> maybe mempty singleton (filterArg tgt)
-    NegQ tgt -> maybe mempty singleton (filterArg tgt)
+    MovQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
+    AddQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
+    SubQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
+    NegQ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
     CallQ _ _ -> HashSet.fromList [X86Var.Reg reg | reg <- callerSaved]
     _ -> mempty
 
   use = \case
-    MovQ src _ -> maybe mempty singleton (filterArg src)
-    AddQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
-    SubQ src tgt -> maybe mempty singleton (filterArg src) <> maybe mempty singleton (filterArg tgt)
-    NegQ tgt -> maybe mempty singleton (filterArg tgt)
+    MovQ src _ -> maybe mempty HashSet.singleton (filterArg src)
+    AddQ src tgt -> maybe mempty HashSet.singleton (filterArg src) <> maybe mempty HashSet.singleton (filterArg tgt)
+    SubQ src tgt -> maybe mempty HashSet.singleton (filterArg src) <> maybe mempty HashSet.singleton (filterArg tgt)
+    NegQ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
     CallQ _ n -> HashSet.fromList [X86Var.Reg reg | reg <- take n argumentPassing]
     _ -> mempty
 
@@ -242,12 +236,12 @@ buildInterference (MkLivenessTrace trace) = Undirected.edges (concatMap getEdges
 
   writes :: X86Var.Instr -> HashSet X86Var.Arg
   writes = \case
-    AddQ _ tgt -> singleton tgt
-    SubQ _ tgt -> singleton tgt
-    NegQ tgt -> singleton tgt
-    MovQ _ tgt -> singleton tgt
-    PushQ _ -> singleton (X86Var.Reg RSP)
-    PopQ _ -> singleton (X86Var.Reg RSP)
+    AddQ _ tgt -> HashSet.singleton tgt
+    SubQ _ tgt -> HashSet.singleton tgt
+    NegQ tgt -> HashSet.singleton tgt
+    MovQ _ tgt -> HashSet.singleton tgt
+    PushQ _ -> HashSet.singleton (X86Var.Reg RSP)
+    PopQ _ -> HashSet.singleton (X86Var.Reg RSP)
     _ -> mempty
 
   canInterfere = \cases
@@ -279,12 +273,12 @@ passAssignHomes (X86Var.MkBlock xs) =
     X86Var.Deref n reg -> pure (X86Int.Deref n reg)
     X86Var.Var name -> do
       X86Int.MkFrame{env, offset} <- get
-      case env !? name of
+      case HashMap.lookup name env of
         Just arg -> pure arg
         Nothing -> do
           let offset' = offset - 8
               arg = X86Int.Deref offset' RBP
-          modify \s -> s{X86Int.env = insert name arg env, X86Int.offset = offset'}
+          modify \s -> s{X86Int.env = HashMap.insert name arg env, X86Int.offset = offset'}
           pure arg
 {-# SPECIALIZE passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block #-}
 

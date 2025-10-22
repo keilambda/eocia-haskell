@@ -1,11 +1,9 @@
 module Stage.X86Int (module Stage.X86Int) where
 
 import Core (InstrF, Label, Name, Reg)
-import Data.HashMap.Strict (HashMap, toList)
-import Data.Kind (Type)
-import Data.List (List)
+import Data.HashMap.Strict qualified as HashMap
 import GHC.Records (HasField (getField))
-import Prettyprinter
+import Pre
 
 type Arg :: Type
 data Arg = Imm Int | Reg Reg | Deref Int Reg
@@ -43,6 +41,6 @@ data Program = MkProgram {globl :: Label, blocks :: HashMap Label Block}
 
 instance Pretty Program where
   pretty MkProgram{globl, blocks} =
-    pretty ".globl" <+> pretty globl <> hardline <> vsep (map ln (toList blocks)) <> line
+    pretty ".globl" <+> pretty globl <> hardline <> vsep (map ln (HashMap.toList blocks)) <> line
    where
     ln (lbl, block) = pretty lbl <> colon <> line <> indent 4 (pretty block)

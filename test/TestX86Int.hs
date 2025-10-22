@@ -1,8 +1,8 @@
 module TestX86Int (tests) where
 
 import Core (InstrF (..), Reg (..), renderText)
-import Data.HashMap.Strict (fromList)
-import Data.Text qualified as T
+import Data.HashMap.Strict qualified as HashMap
+import Data.Text qualified as Text
 import Stage.X86Int
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -38,9 +38,9 @@ groupPretty =
                 , PopQ (Reg RAX)
                 , RetQ
                 ]
-            prog = MkProgram{globl = "main", blocks = fromList [("main", block)]}
+            prog = MkProgram{globl = "main", blocks = HashMap.fromList [("main", block)]}
         renderText prog
-          @?= T.unlines
+          @?= Text.unlines
             [ ".globl main"
             , "main:"
             , "    movq $42, %rax"
