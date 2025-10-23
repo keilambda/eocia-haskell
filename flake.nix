@@ -4,15 +4,14 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    devshell.url = "github:numtide/devshell";
-    devshell.inputs.nixpkgs.follows = "nixpkgs";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+    git-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , flake-parts
-    , devshell
+    { flake-parts
+    , git-hooks
+    , ...
     }@inputs: flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -23,40 +22,42 @@
         let
           hpkgs = pkgs.haskell.packages.ghc912;
 
-          eocia-haskell = pkgs.haskell.lib.overrideCabal (hpkgs.callCabal2nix "eocia-haskell" ./. { }) (old: {
+          eocia-haskell = pkgs.haskell.lib.overrideCabal (hpkgs.callCabal2nix "eocia-haskell" ./. { }) (_: {
             doCheck = true;
             doHaddock = false;
             enableLibraryProfiling = false;
             enableExecutableProfiling = false;
           });
+
+          githooks = git-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              statix.enable = true;
+              deadnix.enable = true;
+              fourmolu.enable = true;
+              cabal-fmt.enable = true;
+              nixpkgs-fmt.enable = true;
+            };
+          };
         in
         {
-          _module.args.pkgs = import nixpkgs {
-            localSystem = { inherit system; };
-            overlays = [
-              devshell.overlays.default
-            ];
-          };
-
           packages.default = eocia-haskell;
 
-          devShells.default = pkgs.devshell.mkShell {
+          checks = {
+            inherit githooks;
+          };
+
+          devShells.default = pkgs.mkShell {
             packages = [
               hpkgs.cabal-install
               hpkgs.haskell-language-server
-              hpkgs.fourmolu
               hpkgs.ghcid
               hpkgs.ghc
             ];
 
-            commands = [
-              {
-                name = "test-watch";
-                command = ''
-                  ghcid -c "cabal repl eocia-haskell-test" -T "Main.main"
-                '';
-              }
-            ];
+            shellHook = ''
+              ${githooks.shellHook}
+            '';
           };
         };
     };

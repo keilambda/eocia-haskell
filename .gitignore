@@ -25,3 +25,4 @@ cabal.project.local~
 .direnv
 .envrc
 result
+.pre-commit-config.yaml
