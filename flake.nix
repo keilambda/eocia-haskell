@@ -51,8 +51,10 @@
             packages = [
               hpkgs.cabal-install
               hpkgs.haskell-language-server
+              hpkgs.fourmolu
               hpkgs.ghcid
               hpkgs.ghc
+              pkgs.haskellPackages.cabal-fmt
             ];
 
             shellHook = ''
