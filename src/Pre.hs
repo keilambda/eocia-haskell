@@ -24,7 +24,11 @@ module Pre
   , runExceptT
 
     -- * MonadIO
-  , liftIO
+  , MonadIO (..)
+
+    -- * Reader
+  , MonadReader (..)
+  , ReaderT (..)
 
     -- * State
   , MonadState
@@ -38,8 +42,9 @@ module Pre
 where
 
 import Control.Monad
-import Control.Monad.Except (ExceptT, MonadError (..), runExceptT)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Except (ExceptT (..), MonadError (..), runExceptT)
+import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.Reader (MonadReader (..), ReaderT (..))
 import Control.Monad.State.Strict (MonadState, State, evalState, get, modify, put, runState)
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)

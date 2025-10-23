@@ -32,13 +32,13 @@ read_ :: Expr
 read_ = NulApp Read
 
 neg :: Expr -> Expr
-neg e = UnApp Neg e
+neg = UnApp Neg
 
 add :: Expr -> Expr -> Expr
-add a b = BinApp Add a b
+add = BinApp Add
 
 sub :: Expr -> Expr -> Expr
-sub a b = BinApp Sub a b
+sub = BinApp Sub
 
 type Env :: Type
 type Env = HashMap Name Expr
@@ -49,21 +49,23 @@ data LVarErr
   | InvalidReadInput Text
   deriving stock (Eq, Show)
 
-interpExpr :: Env -> Expr -> ExceptT LVarErr IO Int
-interpExpr env = \case
+interpExpr :: (MonadError LVarErr m, MonadIO m, MonadReader Env m) => Expr -> m Int
+interpExpr = \case
   Lit n -> pure n
-  Var n -> maybe (throwError (UnboundVariable n)) (interpExpr env) (HashMap.lookup n env)
+  Var n -> do
+    env <- ask
+    maybe (throwError (UnboundVariable n)) interpExpr (HashMap.lookup n env)
   Let n e body -> do
-    e' <- interpExpr env e
-    interpExpr (HashMap.insert n (Lit e') env) body
+    e' <- interpExpr e
+    local (HashMap.insert n (Lit e')) $ interpExpr body
   NulApp Read -> do
     str <- liftIO Text.getLine
     case Text.decimal str of
       Right (r, Empty) -> pure r
       _ -> throwError (InvalidReadInput str)
-  UnApp Neg a -> negate <$> interpExpr env a
-  BinApp Add a b -> (+) <$> interpExpr env a <*> interpExpr env b
-  BinApp Sub a b -> (-) <$> interpExpr env a <*> interpExpr env b
+  UnApp Neg a -> negate <$> interpExpr a
+  BinApp Add a b -> (+) <$> interpExpr a <*> interpExpr b
+  BinApp Sub a b -> (-) <$> interpExpr a <*> interpExpr b
 
 runInterpExpr :: Expr -> IO (Either LVarErr Int)
-runInterpExpr e = runExceptT (interpExpr mempty e)
+runInterpExpr e = runExceptT (runReaderT (interpExpr e) mempty)
