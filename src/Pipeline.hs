@@ -8,6 +8,7 @@ import Core
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (difference)
 import Data.HashSet qualified as HashSet
+import Effectful.State.Static.Local
 import Pre
 import Stage.CVar qualified as CVar
 import Stage.LVar qualified as LVar
@@ -16,7 +17,7 @@ import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
 -- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
-passUniquify :: (MonadGensym m) => LVar.Expr -> m LVar.Expr
+passUniquify :: (Gensym :> es) => LVar.Expr -> Eff es LVar.Expr
 passUniquify = loop mempty
  where
   loop env = \case
@@ -34,10 +35,9 @@ passUniquify = loop mempty
     e@(LVar.NulApp _) -> pure e
     LVar.UnApp op a -> LVar.UnApp op <$> loop env a
     LVar.BinApp op a b -> LVar.BinApp op <$> loop env a <*> loop env b
-{-# SPECIALIZE passUniquify :: LVar.Expr -> State Int LVar.Expr #-}
 
 -- | \(O(n)\) Transform the language into Monadic IR.
-passRemoveComplexOperands :: (MonadGensym m) => LVar.Expr -> m LVarMon.Expr
+passRemoveComplexOperands :: (Gensym :> es) => LVar.Expr -> Eff es LVarMon.Expr
 passRemoveComplexOperands = \case
   LVar.Lit n -> pure $ LVarMon.Atom (Lit n)
   LVar.Var n -> pure $ LVarMon.Atom (Var n)
@@ -49,7 +49,6 @@ passRemoveComplexOperands = \case
   LVar.UnApp op a -> rcoUnOp op a
   LVar.BinApp op a b -> rcoBinOp op a b
  where
-  genTmpName :: (MonadGensym m) => m Name
   genTmpName = MkName <$> gensym "tmp."
 
   rcoAtom = \case
@@ -80,7 +79,6 @@ passRemoveComplexOperands = \case
       tmpa <- genTmpName
       tmpb <- genTmpName
       pure $ LVarMon.Let tmpa ra (LVarMon.Let tmpb rb (LVarMon.BinApp op (Var tmpa) (Var tmpb)))
-{-# SPECIALIZE passRemoveComplexOperands :: LVar.Expr -> State Int LVarMon.Expr #-}
 
 -- | \(O(n)\) Transform expression-based IR into statement-based.
 passExplicateControl :: LVarMon.Expr -> CVar.Tail
@@ -252,7 +250,7 @@ buildInterference (MkLivenessTrace trace) = Undirected.edges (concatMap getEdges
     _ _ -> False
 
 -- | \(O(n)\) Replace variables with stack locations relative to base pointer.
-passAssignHomes :: (MonadState X86Int.Frame m) => X86Var.Block -> m X86Int.Block
+passAssignHomes :: (State X86Int.Frame :> es) => X86Var.Block -> Eff es X86Int.Block
 passAssignHomes (X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
     AddQ src tgt -> AddQ <$> spill src <*> spill tgt
@@ -266,7 +264,6 @@ passAssignHomes (X86Var.MkBlock xs) =
     Syscall -> pure Syscall
     RetQ -> pure RetQ
  where
-  spill :: (MonadState X86Int.Frame m) => X86Var.Arg -> m X86Int.Arg
   spill = \case
     X86Var.Imm n -> pure (X86Int.Imm n)
     X86Var.Reg reg -> pure (X86Int.Reg reg)
@@ -280,7 +277,6 @@ passAssignHomes (X86Var.MkBlock xs) =
               arg = X86Int.Deref offset' RBP
           modify \s -> s{X86Int.env = HashMap.insert name arg env, X86Int.offset = offset'}
           pure arg
-{-# SPECIALIZE passAssignHomes :: X86Var.Block -> State X86Int.Frame X86Int.Block #-}
 
 {- | \(O(n)\) Patch instructions to make sure that each instruction adheres to the restriction that at most one argument
 an instruction may be a memory reference.
@@ -329,11 +325,11 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
           ]
 
-compile :: (MonadGensym m) => Platform -> LVar.Expr -> m X86Int.Program
+compile :: (Gensym :> es) => Platform -> LVar.Expr -> Eff es X86Int.Program
 compile platform lvar = do
   lvarmon <- (passRemoveComplexOperands <=< passUniquify) lvar
   let cvar = passExplicateControl lvarmon
   let xvar = passSelectInstructions cvar
-  let (xint, frame) = runState (passAssignHomes xvar) X86Int.emptyFrame
+  (xint, frame) <- runState X86Int.emptyFrame (passAssignHomes xvar)
   let patched = passPatchInstructions xint
   pure $ passGeneratePreludeAndConclusion platform frame.size patched

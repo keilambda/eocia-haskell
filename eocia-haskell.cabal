@@ -22,13 +22,17 @@ common warnings
     -Wno-safe -Wno-monomorphism-restriction
     -Wno-prepositive-qualified-module -Wno-unused-packages
     -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+    -fplugin=Effectful.Plugin
 
 common dependencies
   build-depends:
     , algebraic-graphs
     , base
+    , effectful
+    , effectful-core
+    , effectful-plugin
+    , effectful-th
     , hashable
-    , mtl
     , prettyprinter
     , text
     , unordered-containers

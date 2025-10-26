@@ -7,6 +7,8 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Text (pattern Empty)
 import Data.Text.IO qualified as Text
 import Data.Text.Read qualified as Text
+import Effectful.Error.Static
+import Effectful.Reader.Static
 import Pre
 
 type Expr :: Type
@@ -49,7 +51,7 @@ data LVarErr
   | InvalidReadInput Text
   deriving stock (Eq, Show)
 
-interpExpr :: (MonadError LVarErr m, MonadIO m, MonadReader Env m) => Expr -> m Int
+interpExpr :: (Error LVarErr :> es, IOE :> es, Reader Env :> es) => Expr -> Eff es Int
 interpExpr = \case
   Lit n -> pure n
   Var n -> do
@@ -68,4 +70,4 @@ interpExpr = \case
   BinApp Sub a b -> (-) <$> interpExpr a <*> interpExpr b
 
 runInterpExpr :: Expr -> IO (Either LVarErr Int)
-runInterpExpr e = runExceptT (runReaderT (interpExpr e) mempty)
+runInterpExpr = runEff . runErrorNoCallStack . runReader mempty . interpExpr

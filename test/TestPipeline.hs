@@ -6,6 +6,7 @@ import Core
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (singleton)
 import Data.HashSet qualified as HashSet
+import Effectful.State.Static.Local
 import Pipeline
 import Pre
 import Stage.CVar qualified as CVar
@@ -46,25 +47,25 @@ groupPassUniquify =
   testGroup
     "passUniquify"
     [ testProperty "variable is bound at most once" \expr -> do
-        let vars = countVars (evalState (passUniquify expr) (0 :: Int))
+        let vars = countVars $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
         all (<= 1) vars
     , testProperty "preserves semantics" \expr -> ioProperty do
         orig <- LVar.runInterpExpr expr
-        uniq <- LVar.runInterpExpr (evalState (passUniquify expr) (0 :: Int))
+        uniq <- LVar.runInterpExpr $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
         pure $ case (orig, uniq) of
           (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True
           _ -> orig == uniq
     , testCase "preserves semantics" do
         let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
-            expr' = evalState (passUniquify expr) (0 :: Int)
+            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
         renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
     , testCase "uniquifies unbound variables" do
         let expr = LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
-            expr' = evalState (passUniquify expr) (0 :: Int)
+            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
         expr' @?= LVar.Let "x.0" (LVar.Var "x.1") (LVar.Var "y.2")
     , testCase "does not advance the counter on bound variables" do
         let expr = LVar.Let "x" (LVar.Lit 42) $ LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
-            expr' = evalState (passUniquify expr) (0 :: Int)
+            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
         expr' @?= LVar.Let "x.0" (LVar.Lit 42) (LVar.Let "x.1" (LVar.Var "x.0") (LVar.Var "y.2"))
     ]
 
@@ -74,14 +75,14 @@ groupPassRemoveComplexOperands =
     "passRemoveComplexOperands"
     [ testCase "breaks down complex operands into monadic form" do
         let expr = LVar.Let "x" (LVar.add (LVar.Lit 42) (LVar.neg (LVar.Lit 10))) (LVar.add (LVar.Var "x") (LVar.Lit 10))
-        evalState (passRemoveComplexOperands expr) (1 :: Int)
+        runPureEff (runGensymPure @Int 1 (passRemoveComplexOperands expr))
           @?= LVarMon.Let
             "x"
             (LVarMon.Let "tmp.1" (LVarMon.UnApp Neg (Lit 10)) (LVarMon.BinApp Add (Lit 42) (Var "tmp.1")))
             (LVarMon.BinApp Add (Var "x") (Lit 10))
     , testCase "does not simplify already simple expression" do
         let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
-        evalState (passRemoveComplexOperands expr) (1 :: Int)
+        runPureEff (runGensymPure @Int 1 (passRemoveComplexOperands expr))
           @?= LVarMon.Let "a" (LVarMon.Atom (Lit 42)) (LVarMon.Let "b" (LVarMon.Atom (Var "a")) (LVarMon.Atom (Var "b")))
     ]
 
@@ -188,7 +189,7 @@ groupPassAssignHomes =
               , SubQ (X86Var.Imm 10) (X86Var.Var "y")
               , MovQ (X86Var.Var "y") (X86Var.Reg RAX)
               ]
-        evalState (passAssignHomes (X86Var.MkBlock expr)) X86Int.emptyFrame
+        runPureEff (evalState X86Int.emptyFrame (passAssignHomes (X86Var.MkBlock expr)))
           @?= X86Int.MkBlock
             [ MovQ (X86Int.Imm 32) (X86Int.Deref (-8) RBP)
             , AddQ (X86Int.Imm 10) (X86Int.Deref (-8) RBP)
