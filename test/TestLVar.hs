@@ -1,7 +1,7 @@
 module TestLVar (tests) where
 
 import Arbitrary ()
-import Core (renderText)
+import Pre
 import Stage.LVar
 import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)

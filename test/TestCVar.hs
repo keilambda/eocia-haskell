@@ -1,6 +1,7 @@
 module TestCVar (tests) where
 
-import Core (Atom (..), BinOp (..), UnOp (..), renderText)
+import Core (Atom (..), BinOp (..), UnOp (..))
+import Pre
 import Stage.CVar
 import Test.Tasty
 import Test.Tasty.HUnit

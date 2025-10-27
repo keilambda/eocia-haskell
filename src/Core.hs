@@ -19,12 +19,10 @@ module Core
   , calleeSaved
   , argumentPassing
   , module Core.Gensym
-  , module Core.Pretty
   )
 where
 
 import Core.Gensym
-import Core.Pretty
 import Data.HashSet qualified as HashSet
 import Data.String (IsString)
 import Pre

@@ -45,7 +45,6 @@ library
     Core
     Core.Gensym
     Core.Input
-    Core.Pretty
     Pipeline
     Pre
     Stage.CVar

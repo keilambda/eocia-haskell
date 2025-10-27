@@ -1,7 +1,8 @@
 module TestX86Int (tests) where
 
-import Core (InstrF (..), Reg (..), renderText)
+import Core (InstrF (..), Reg (..))
 import Data.HashMap.Strict qualified as HashMap
+import Pre
 import Stage.X86Int
 import Test.Tasty
 import Test.Tasty.HUnit

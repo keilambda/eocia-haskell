@@ -1,7 +1,7 @@
 module TestLInt (tests) where
 
 import Arbitrary ()
-import Core (renderText)
+import Pre
 import Stage.LInt
 import Test.Tasty
 import Test.Tasty.HUnit hiding (assert)
