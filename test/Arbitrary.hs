@@ -47,11 +47,12 @@ instance Arbitrary LInt.Expr where
 instance Arbitrary LVar.Expr where
   arbitrary = sized \n ->
     if n <= 0 then
-      oneof [LVar.Lit <$> arbitrary, LVar.Var <$> arbitrary]
+      oneof [LVar.Lit <$> arbitrary, LVar.Var <$> arbitrary, pure LVar.read_]
     else
       oneof
         [ LVar.Lit <$> arbitrary
         , LVar.Var <$> arbitrary
+        , pure LVar.read_
         , LVar.Let <$> arbitrary <*> resize (n `div` 2) arbitrary <*> resize (n `div` 2) arbitrary
         , LVar.neg <$> resize (n `div` 2) arbitrary
         , do

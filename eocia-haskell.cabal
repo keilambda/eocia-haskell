@@ -44,6 +44,7 @@ library
   exposed-modules:
     Core
     Core.Gensym
+    Core.Input
     Core.Pretty
     Pipeline
     Pre

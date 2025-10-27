@@ -8,7 +8,7 @@ import Test.Tasty.HUnit hiding (assert)
 
 shouldEvalTo :: Expr -> Either LVarErr Int -> IO ()
 shouldEvalTo expr expected = do
-  res <- runInterpExpr expr
+  res <- runInterpExprIO expr
   res @?= expected
 
 tests :: TestTree

@@ -49,10 +49,10 @@ groupPassUniquify =
     [ testProperty "variable is bound at most once" \expr -> do
         let vars = countVars $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
         all (<= 1) vars
-    , testProperty "preserves semantics" \expr -> ioProperty do
-        orig <- LVar.runInterpExpr expr
-        uniq <- LVar.runInterpExpr $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
-        pure $ case (orig, uniq) of
+    , testProperty "preserves semantics" \expr -> do
+        let orig = LVar.runInterpExprConst "42" expr
+        let uniq = LVar.runInterpExprConst "42" $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
+        case (orig, uniq) of
           (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True
           _ -> orig == uniq
     , testCase "preserves semantics" do

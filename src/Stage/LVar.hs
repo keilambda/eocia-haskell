@@ -3,9 +3,9 @@
 module Stage.LVar (module Stage.LVar) where
 
 import Core (BinOp (..), Name, NulOp (..), UnOp (..))
+import Core.Input
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text (pattern Empty)
-import Data.Text.IO qualified as Text
 import Data.Text.Read qualified as Text
 import Effectful.Error.Static
 import Effectful.Reader.Static
@@ -51,7 +51,7 @@ data LVarErr
   | InvalidReadInput Text
   deriving stock (Eq, Show)
 
-interpExpr :: (Error LVarErr :> es, IOE :> es, Reader Env :> es) => Expr -> Eff es Int
+interpExpr :: (Error LVarErr :> es, Input :> es, Reader Env :> es) => Expr -> Eff es Int
 interpExpr = \case
   Lit n -> pure n
   Var n -> do
@@ -61,7 +61,7 @@ interpExpr = \case
     e' <- interpExpr e
     local (HashMap.insert n (Lit e')) $ interpExpr body
   NulApp Read -> do
-    str <- liftIO Text.getLine
+    str <- readLine
     case Text.decimal str of
       Right (r, Empty) -> pure r
       _ -> throwError (InvalidReadInput str)
@@ -69,5 +69,8 @@ interpExpr = \case
   BinApp Add a b -> (+) <$> interpExpr a <*> interpExpr b
   BinApp Sub a b -> (-) <$> interpExpr a <*> interpExpr b
 
-runInterpExpr :: Expr -> IO (Either LVarErr Int)
-runInterpExpr = runEff . runErrorNoCallStack . runReader mempty . interpExpr
+runInterpExprConst :: Text -> Expr -> Either LVarErr Int
+runInterpExprConst text = runPureEff . runInputConst text . runErrorNoCallStack . runReader mempty . interpExpr
+
+runInterpExprIO :: Expr -> IO (Either LVarErr Int)
+runInterpExprIO = runEff . runInputStdin . runErrorNoCallStack . runReader mempty . interpExpr
