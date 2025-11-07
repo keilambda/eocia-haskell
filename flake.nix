@@ -55,6 +55,7 @@
               hpkgs.ghcid
               hpkgs.ghc
               pkgs.haskellPackages.cabal-fmt
+              pkgs.haskellPackages.implicit-hie
             ];
 
             shellHook = ''
