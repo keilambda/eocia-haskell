@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:eocia-haskell"
+
+    - path: "app/Main.hs"
+      component: "eocia-haskell:exe:eocia-haskell"
+
+    - path: "test"
+      component: "eocia-haskell:test:eocia-haskell-test"
