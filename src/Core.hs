@@ -50,7 +50,7 @@ lblConclusion = "conclusion"
 
 type Platform :: Type
 data Platform = Linux | Darwin
-  deriving stock (Show)
+  deriving stock (Bounded, Enum, Show)
 
 resolveLabel :: Platform -> Label -> Label
 resolveLabel = \case
@@ -73,21 +73,21 @@ instance Pretty Atom where
 
 type NulOp :: Type
 data NulOp = Read
-  deriving stock (Eq, Show)
+  deriving stock (Bounded, Enum, Eq, Show)
 
 instance Pretty NulOp where
   pretty Read = "read"
 
 type UnOp :: Type
 data UnOp = Neg
-  deriving stock (Eq, Show)
+  deriving stock (Bounded, Enum, Eq, Show)
 
 instance Pretty UnOp where
   pretty Neg = "-"
 
 type BinOp :: Type
 data BinOp = Add | Sub
-  deriving stock (Eq, Show)
+  deriving stock (Bounded, Enum, Eq, Show)
 
 instance Pretty BinOp where
   pretty = \case
@@ -96,7 +96,7 @@ instance Pretty BinOp where
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
-  deriving stock (Eq, Generic, Ord, Show)
+  deriving stock (Bounded, Enum, Eq, Generic, Ord, Show)
   deriving anyclass (Hashable)
 
 instance Pretty Reg where

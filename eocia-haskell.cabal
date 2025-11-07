@@ -32,6 +32,7 @@ common dependencies
     , effectful-core
     , effectful-plugin
     , effectful-th
+    , extra
     , hashable
     , prettyprinter
     , text

@@ -1,6 +1,7 @@
 module Arbitrary () where
 
 import Core
+import Data.List.Extra (enumerate)
 import Data.Text qualified as Text
 import Stage.CVar qualified as CVar
 import Stage.LInt qualified as LInt
@@ -20,14 +21,14 @@ instance Arbitrary Label where
     first = ['a' .. 'z'] <> ['A' .. 'Z'] <> "_"
     rest = first <> ['0' .. '9']
 
-instance Arbitrary Platform where arbitrary = elements [Linux, Darwin]
+instance Arbitrary Platform where arbitrary = elements enumerate
 
-instance Arbitrary NulOp where arbitrary = pure Read
-instance Arbitrary UnOp where arbitrary = pure Neg
-instance Arbitrary BinOp where arbitrary = elements [Add, Sub]
+instance Arbitrary NulOp where arbitrary = elements enumerate
+instance Arbitrary UnOp where arbitrary = elements enumerate
+instance Arbitrary BinOp where arbitrary = elements enumerate
 
 instance Arbitrary Reg where
-  arbitrary = elements [RSP, RBP, RAX, RBX, RCX, RDX, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15]
+  arbitrary = elements enumerate
 
 instance Arbitrary LInt.Expr where
   -- NOTE: Generation of @Prim Read []@ is excluded because it makes tests halt.
