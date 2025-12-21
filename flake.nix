@@ -52,10 +52,10 @@
               hpkgs.cabal-install
               hpkgs.haskell-language-server
               hpkgs.fourmolu
+              hpkgs.implicit-hie
               hpkgs.ghcid
               hpkgs.ghc
               pkgs.haskellPackages.cabal-fmt
-              pkgs.haskellPackages.implicit-hie
             ];
 
             shellHook = ''
