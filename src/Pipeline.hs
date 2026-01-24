@@ -6,7 +6,7 @@ module Pipeline (module Pipeline) where
 import Algebra.Graph.Undirected qualified as Undirected
 import Core
 import Data.HashMap.Strict qualified as HashMap
-import Data.HashSet (difference)
+import Data.HashSet (difference, union)
 import Data.HashSet qualified as HashSet
 import Effectful.State.Static.Local
 import Pre
@@ -174,34 +174,33 @@ instance Pretty LivenessTrace where
 TODO: Handle 'Jmp' when compiler starts generating multiple blocks.
 -}
 uncoverLive :: HashSet X86Var.Arg -> X86Var.Block -> LivenessTrace
-uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace $ go prev [] (reverse block)
+uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace . snd $ mapAccumR liveness prev block
  where
-  go _ acc [] = acc
-  go after acc (x : xs) =
-    let before = (after `difference` def x) <> use x
-     in go before (MkLiveness before x after : acc) xs
+  liveness after instr =
+    let before = (after `difference` def instr) `union` use instr
+     in (before, MkLiveness{before, instr, after})
 
   def = \case
-    MovQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
-    AddQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
-    SubQ _ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
-    NegQ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
+    MovQ _ tgt -> argSet tgt
+    AddQ _ tgt -> argSet tgt
+    SubQ _ tgt -> argSet tgt
+    NegQ tgt -> argSet tgt
     CallQ _ _ -> HashSet.fromList [X86Var.Reg reg | reg <- callerSaved]
-    _ -> mempty
+    _ -> HashSet.empty
 
   use = \case
-    MovQ src _ -> maybe mempty HashSet.singleton (filterArg src)
-    AddQ src tgt -> maybe mempty HashSet.singleton (filterArg src) <> maybe mempty HashSet.singleton (filterArg tgt)
-    SubQ src tgt -> maybe mempty HashSet.singleton (filterArg src) <> maybe mempty HashSet.singleton (filterArg tgt)
-    NegQ tgt -> maybe mempty HashSet.singleton (filterArg tgt)
+    MovQ src _ -> argSet src
+    AddQ src tgt -> argSet src <> argSet tgt
+    SubQ src tgt -> argSet src <> argSet tgt
+    NegQ tgt -> argSet tgt
     CallQ _ n -> HashSet.fromList [X86Var.Reg reg | reg <- take n argumentPassing]
-    _ -> mempty
+    _ -> HashSet.empty
 
-  filterArg = \case
-    arg@(X86Var.Reg _) -> Just arg
-    arg@(X86Var.Var _) -> Just arg
-    arg@(X86Var.Deref _ _) -> Just arg
-    X86Var.Imm _ -> Nothing
+  argSet = \case
+    arg@(X86Var.Reg _) -> HashSet.singleton arg
+    arg@(X86Var.Var _) -> HashSet.singleton arg
+    arg@(X86Var.Deref _ _) -> HashSet.singleton arg
+    X86Var.Imm _ -> HashSet.empty
 
 type InterferenceGraph :: Type
 type InterferenceGraph = Undirected.Graph X86Var.Arg
