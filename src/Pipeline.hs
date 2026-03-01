@@ -8,6 +8,7 @@ import Core
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (difference, union)
 import Data.HashSet qualified as HashSet
+import Effectful.Error.Static
 import Effectful.State.Static.Local
 import Pre
 import Stage.CVar qualified as CVar
@@ -16,17 +17,20 @@ import Stage.LVarMon qualified as LVarMon
 import Stage.X86Int qualified as X86Int
 import Stage.X86Var qualified as X86Var
 
+type PipelineErr :: Type
+data PipelineErr
+  = UnboundRenaming
+  deriving stock (Eq, Show)
+
 -- | \(O(n)\) Alpha-rename to ensure uniqueness of variables.
-passUniquify :: (Gensym :> es) => LVar.Expr -> Eff es LVar.Expr
+passUniquify :: (Error PipelineErr :> es, Gensym :> es) => LVar.Expr -> Eff es LVar.Expr
 passUniquify = loop mempty
  where
   loop env = \case
     e@(LVar.Lit _) -> pure e
     LVar.Var name -> case HashMap.lookup name env of
-      Just name' -> pure $ LVar.Var name'
-      Nothing -> do
-        name' <- MkName <$> gensym (getName name <> ".")
-        pure $ LVar.Var name'
+      Just name' -> pure (LVar.Var name')
+      Nothing -> throwError UnboundRenaming
     LVar.Let name expr body -> do
       name' <- MkName <$> gensym (getName name <> ".")
       expr' <- loop env expr
@@ -324,7 +328,7 @@ passGeneratePreludeAndConclusion p frameSize (X86Int.MkBlock main) =
           , (lblConclusion_, X86Int.MkBlock $ conclusion ++ exit)
           ]
 
-compile :: (Gensym :> es) => Platform -> LVar.Expr -> Eff es X86Int.Program
+compile :: (Error PipelineErr :> es, Gensym :> es) => Platform -> LVar.Expr -> Eff es X86Int.Program
 compile platform lvar = do
   lvarmon <- (passRemoveComplexOperands <=< passUniquify) lvar
   let cvar = passExplicateControl lvarmon

@@ -3,9 +3,11 @@ module TestPipeline (tests) where
 import Algebra.Graph.Undirected qualified as Undirected
 import Arbitrary ()
 import Core
+import Data.Either.Extra (fromRight')
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (singleton)
 import Data.HashSet qualified as HashSet
+import Effectful.Error.Static
 import Effectful.State.Static.Local
 import Pipeline
 import Pre
@@ -47,26 +49,24 @@ groupPassUniquify =
   testGroup
     "passUniquify"
     [ testProperty "variable is bound at most once" \expr -> do
-        let vars = countVars $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
-        all (<= 1) vars
+        case runPureEff . runErrorNoCallStack . runGensymPure @Int 0 $ passUniquify expr of
+          Left UnboundRenaming -> True -- pass on invalid AST
+          Right vars -> all (<= 1) (countVars vars)
     , testProperty "preserves semantics" \expr -> do
         let orig = LVar.runInterpExprConst "42" expr
-        let uniq = LVar.runInterpExprConst "42" $ runPureEff . runGensymPure @Int 0 $ passUniquify expr
-        case (orig, uniq) of
-          (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True
-          _ -> orig == uniq
+        case runPureEff . runErrorNoCallStack . runGensymPure @Int 0 $ passUniquify expr of
+          Left UnboundRenaming -> True -- pass on invalid AST
+          Right uniq -> case (orig, LVar.runInterpExprConst "42" uniq) of
+            (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True -- pass on invalid AST
+            (_, uniq') -> orig == uniq'
     , testCase "preserves semantics" do
         let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
-            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
+            expr' = fromRight' . runPureEff . runErrorNoCallStack . runGensymPure @Int 0 $ passUniquify expr
         renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
-    , testCase "uniquifies unbound variables" do
+    , testCase "does not uniquify unbound variables" do
         let expr = LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
-            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
-        expr' @?= LVar.Let "x.0" (LVar.Var "x.1") (LVar.Var "y.2")
-    , testCase "does not advance the counter on bound variables" do
-        let expr = LVar.Let "x" (LVar.Lit 42) $ LVar.Let "x" (LVar.Var "x") (LVar.Var "y")
-            expr' = runPureEff . runGensymPure @Int 0 $ passUniquify expr
-        expr' @?= LVar.Let "x.0" (LVar.Lit 42) (LVar.Let "x.1" (LVar.Var "x.0") (LVar.Var "y.2"))
+            expr' = runPureEff . runErrorNoCallStack . runGensymPure @Int 0 $ passUniquify expr
+        expr' @?= Left UnboundRenaming
     ]
 
 groupPassRemoveComplexOperands :: TestTree
