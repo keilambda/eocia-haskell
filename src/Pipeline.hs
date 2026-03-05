@@ -5,9 +5,13 @@ module Pipeline (module Pipeline) where
 
 import Algebra.Graph.Undirected qualified as Undirected
 import Core
+import Data.Containers.ListUtils (nubOrd)
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (difference, union)
 import Data.HashSet qualified as HashSet
+import Data.List ((!?))
+import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Set qualified as Set
 import Effectful.Error.Static
 import Effectful.State.Static.Local
 import Pre
@@ -252,7 +256,95 @@ buildInterference (MkLivenessTrace trace) = Undirected.edges (concatMap getEdges
     (X86Var.Reg _) (X86Var.Var _) -> True
     _ _ -> False
 
--- | \(O(n)\) Replace variables with stack locations relative to base pointer.
+-- | \(O(n^2 \log n)\) Color a graph by picking the least saturated node
+colorGraph :: forall a. (Hashable a, Ord a) => [a] -> Undirected.Graph a -> HashMap.HashMap a Int
+colorGraph vertices g =
+  HashMap.fromList
+    $ go
+      (Set.fromList $ (0,) <$> vertices)
+      (HashMap.fromList $ (,mempty) <$> vertices)
+ where
+  adj = HashMap.fromList $ Undirected.adjacencyList g
+  -- nco - nc order. fst stores the ordering key (number of neighbors), snd stores the value
+  go
+    :: Set.Set (Int, a)
+    -> HashMap.HashMap a (HashSet.HashSet Int)
+    -> [(a, Int)]
+  go (Set.maxView -> Nothing) _ = []
+  go (Set.maxView -> Just ((_, v), nco)) nc =
+    let ns = fromMaybe HashSet.empty $ nc HashMap.!? v
+        neighbors = fromMaybe [] $ adj HashMap.!? v
+        color = findColor ns 0
+        nc' =
+          HashMap.delete v
+            $ flip HashMap.union nc
+              . HashMap.fromList
+            $ flip mapMaybe neighbors \to ->
+              (to,) . HashSet.insert color <$> (nc HashMap.!? to)
+        getNco ncc =
+          Set.fromList
+            $ flip mapMaybe neighbors \to ->
+              (,to) . HashSet.size <$> (ncc HashMap.!? to)
+        nco' = (nco `Set.difference` getNco nc) `Set.union` getNco nc'
+     in (v, color) : go nco' nc'
+  -- aka MEX
+  findColor set i
+    | HashSet.member i set = findColor set (i + 1)
+    | otherwise = i
+
+uncoverLocals :: X86Var.Block -> [Name]
+uncoverLocals (X86Var.MkBlock xs) = nubOrd $ concatMap vars xs
+ where
+  vars = \case
+    AddQ src tgt -> var src ++ var tgt
+    SubQ src tgt -> var src ++ var tgt
+    NegQ src -> var src
+    MovQ src tgt -> var src ++ var tgt
+    PushQ tgt -> var tgt
+    PopQ tgt -> var tgt
+    CallQ _ _ -> []
+    Jmp _ -> []
+    Syscall -> []
+    RetQ -> []
+  var (X86Var.Var name) = [name]
+  var _ = []
+
+-- | \(O(n^2 \log n)\) Allocate the registers based on @colorGraph@
+passAllocateRegisters :: (State X86Int.Frame :> es) => InterferenceGraph -> X86Var.Block -> Eff es X86Int.Block
+passAllocateRegisters ig block@(X86Var.MkBlock xs) =
+  X86Int.MkBlock <$> for xs \case
+    AddQ src tgt -> AddQ <$> alloc src <*> alloc tgt
+    SubQ src tgt -> SubQ <$> alloc src <*> alloc tgt
+    NegQ src -> NegQ <$> alloc src
+    MovQ src tgt -> MovQ <$> alloc src <*> alloc tgt
+    PushQ tgt -> PushQ <$> alloc tgt
+    PopQ tgt -> PopQ <$> alloc tgt
+    CallQ lbl n -> pure $ CallQ lbl n
+    Jmp lbl -> pure $ Jmp lbl
+    Syscall -> pure Syscall
+    RetQ -> pure RetQ
+ where
+  regs = [RCX, RDX, RBX]
+  colors = colorGraph (X86Var.Var <$> uncoverLocals block) ig
+  alloc = \case
+    X86Var.Imm n -> pure $ X86Int.Imm n
+    X86Var.Reg reg -> pure $ X86Int.Reg reg
+    X86Var.Deref n reg -> pure $ X86Int.Deref n reg
+    v@(X86Var.Var name) ->
+      case HashMap.lookup v colors of
+        Just i | Just reg <- regs !? i -> pure $ X86Int.Reg reg
+        _ -> spill name
+  spill name = do
+    X86Int.MkFrame{env, offset} <- get
+    case HashMap.lookup name env of
+      Just arg -> pure arg
+      Nothing -> do
+        let offset' = offset - 8
+            arg = X86Int.Deref offset' RBP
+        modify \s -> s{X86Int.env = HashMap.insert name arg env, X86Int.offset = offset'}
+        pure arg
+
+-- | \(O(n)\) *Obsolete* Replace variables with stack locations relative to base pointer.
 passAssignHomes :: (State X86Int.Frame :> es) => X86Var.Block -> Eff es X86Int.Block
 passAssignHomes (X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
@@ -262,15 +354,15 @@ passAssignHomes (X86Var.MkBlock xs) =
     MovQ src tgt -> MovQ <$> spill src <*> spill tgt
     PushQ tgt -> PushQ <$> spill tgt
     PopQ tgt -> PopQ <$> spill tgt
-    CallQ lbl n -> pure (CallQ lbl n)
-    Jmp lbl -> pure (Jmp lbl)
+    CallQ lbl n -> pure $ CallQ lbl n
+    Jmp lbl -> pure $ Jmp lbl
     Syscall -> pure Syscall
     RetQ -> pure RetQ
  where
   spill = \case
-    X86Var.Imm n -> pure (X86Int.Imm n)
-    X86Var.Reg reg -> pure (X86Int.Reg reg)
-    X86Var.Deref n reg -> pure (X86Int.Deref n reg)
+    X86Var.Imm n -> pure $ X86Int.Imm n
+    X86Var.Reg reg -> pure $ X86Int.Reg reg
+    X86Var.Deref n reg -> pure $ X86Int.Deref n reg
     X86Var.Var name -> do
       X86Int.MkFrame{env, offset} <- get
       case HashMap.lookup name env of
@@ -333,6 +425,8 @@ compile platform lvar = do
   lvarmon <- (passRemoveComplexOperands <=< passUniquify) lvar
   let cvar = passExplicateControl lvarmon
   let xvar = passSelectInstructions cvar
-  (xint, frame) <- runState X86Int.emptyFrame (passAssignHomes xvar)
+  let lt = uncoverLive mempty xvar
+  let ig = buildInterference lt
+  (xint, frame) <- runState X86Int.emptyFrame (passAllocateRegisters ig xvar)
   let patched = passPatchInstructions xint
   pure $ passGeneratePreludeAndConclusion platform frame.size patched

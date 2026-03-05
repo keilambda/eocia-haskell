@@ -11,6 +11,7 @@ common defaults
     BlockArguments
     DeriveAnyClass
     MultilineStrings
+    ViewPatterns
 
 common warnings
   ghc-options:
@@ -28,6 +29,7 @@ common dependencies
   build-depends:
     , algebraic-graphs
     , base
+    , containers
     , effectful
     , effectful-core
     , effectful-plugin

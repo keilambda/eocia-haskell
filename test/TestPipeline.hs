@@ -3,6 +3,7 @@ module TestPipeline (tests) where
 import Algebra.Graph.Undirected qualified as Undirected
 import Arbitrary ()
 import Core
+import Data.Containers.ListUtils (nubOrd)
 import Data.Either.Extra (fromRight')
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (singleton)
@@ -28,6 +29,7 @@ tests =
     , groupPassRemoveComplexOperands
     , groupPassExplicateControl
     , groupPassSelectInstructions
+    , groupPassAllocateRegisters
     , groupPassAssignHomes
     , groupPassPatchInstructions
     , groupPassGeneratePreludeAndConclusion
@@ -176,6 +178,98 @@ groupPassSelectInstructions =
   fromOp = \case
     Add -> AddQ
     Sub -> SubQ
+
+groupPassAllocateRegisters :: TestTree
+groupPassAllocateRegisters =
+  testGroup
+    "passAllocateRegisters"
+    [ testCase "allocates a register" do
+        let expr =
+              X86Var.MkBlock
+                [ MovQ (X86Var.Imm 10) (X86Var.Var "x")
+                , AddQ (X86Var.Imm 20) (X86Var.Var "x")
+                , MovQ (X86Var.Var "x") (X86Var.Reg RAX)
+                ]
+        let ig = buildInterference (uncoverLive mempty expr)
+        runPureEff (evalState X86Int.emptyFrame (passAllocateRegisters ig expr))
+          @?= X86Int.MkBlock
+            [ MovQ (X86Int.Imm 10) (X86Int.Reg RCX)
+            , AddQ (X86Int.Imm 20) (X86Int.Reg RCX)
+            , MovQ (X86Int.Reg RCX) (X86Int.Reg RAX)
+            ]
+    , testCase "allocates 3 registers for 6 variables " do
+        let expr =
+              X86Var.MkBlock
+                [ MovQ (X86Var.Imm 1) (X86Var.Var "v")
+                , MovQ (X86Var.Imm 46) (X86Var.Var "w")
+                , MovQ (X86Var.Var "v") (X86Var.Var "x")
+                , AddQ (X86Var.Imm 7) (X86Var.Var "x")
+                , MovQ (X86Var.Var "x") (X86Var.Var "y")
+                , AddQ (X86Var.Imm 4) (X86Var.Var "y")
+                , MovQ (X86Var.Var "x") (X86Var.Var "z")
+                , AddQ (X86Var.Var "w") (X86Var.Var "z")
+                , MovQ (X86Var.Var "y") (X86Var.Var "t.1")
+                , NegQ (X86Var.Var "t.1")
+                , MovQ (X86Var.Var "z") (X86Var.Reg RAX)
+                , AddQ (X86Var.Var "t.1") (X86Var.Reg RAX)
+                ]
+        let ig = buildInterference (uncoverLive mempty expr)
+        assertBool "" $ case runPureEff (evalState X86Int.emptyFrame (passAllocateRegisters ig expr)) of
+          X86Int.MkBlock
+            [ MovQ (X86Int.Imm 1) (X86Int.Reg v1)
+              , MovQ (X86Int.Imm 46) (X86Int.Reg w1)
+              , MovQ (X86Int.Reg v2) (X86Int.Reg x1)
+              , AddQ (X86Int.Imm 7) (X86Int.Reg x2)
+              , MovQ (X86Int.Reg x3) (X86Int.Reg y1)
+              , AddQ (X86Int.Imm 4) (X86Int.Reg y2)
+              , MovQ (X86Int.Reg x4) (X86Int.Reg z1)
+              , AddQ (X86Int.Reg w2) (X86Int.Reg z2)
+              , MovQ (X86Int.Reg y3) (X86Int.Reg t1)
+              , NegQ (X86Int.Reg t2)
+              , MovQ (X86Int.Reg z3) (X86Int.Reg RAX)
+              , AddQ (X86Int.Reg t3) (X86Int.Reg RAX)
+              ]
+              | all (== v1) [v1, v2]
+              , all (== w1) [w1, w2]
+              , all (== x1) [x1, x2, x3, x4]
+              , all (== y1) [y1, y2, y3]
+              , all (== z1) [z1, z2, z3]
+              , all (== t1) [t1, t2, t3] ->
+                  let regs = [v1, w1, x1, y1, z1, t1]
+                   in length (nubOrd regs) <= 3 && RAX `notElem` regs
+          _ -> False
+    , testCase "spills" do
+        let expr =
+              X86Var.MkBlock
+                [ MovQ (X86Var.Imm 0) (X86Var.Var "v")
+                , MovQ (X86Var.Imm 10) (X86Var.Var "w")
+                , MovQ (X86Var.Imm 20) (X86Var.Var "x")
+                , MovQ (X86Var.Imm 20) (X86Var.Var "y")
+                , MovQ (X86Var.Imm 30) (X86Var.Var "z")
+                , AddQ (X86Var.Var "v") (X86Var.Var "z")
+                , AddQ (X86Var.Var "w") (X86Var.Var "z")
+                , AddQ (X86Var.Var "x") (X86Var.Var "z")
+                , AddQ (X86Var.Var "y") (X86Var.Var "z")
+                , MovQ (X86Var.Var "z") (X86Var.Reg RAX)
+                ]
+        let ig = buildInterference (uncoverLive mempty expr)
+        let isReg (X86Int.Reg _) = True
+            isReg _ = False
+        assertBool "" $ case runPureEff (evalState X86Int.emptyFrame (passAllocateRegisters ig expr)) of
+          X86Int.MkBlock
+            [ MovQ (X86Int.Imm 0) v
+              , MovQ (X86Int.Imm 10) w
+              , MovQ (X86Int.Imm 20) x
+              , MovQ (X86Int.Imm 20) y
+              , MovQ (X86Int.Imm 30) z
+              , AddQ _ _
+              , AddQ _ _
+              , AddQ _ _
+              , AddQ _ _
+              , MovQ _ (X86Int.Reg RAX)
+              ] -> not $ all isReg [v, w, x, y, z]
+          _ -> False
+    ]
 
 groupPassAssignHomes :: TestTree
 groupPassAssignHomes =
