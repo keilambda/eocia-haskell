@@ -61,12 +61,12 @@ data LVarErr
 checkInt :: (Error LVarErr :> es) => Literal -> Eff es Int
 checkInt = \case
   LInt a -> pure a
-  _ -> throwError (MismatchedType "expected int")
+  _ -> throwError (MismatchedType "expected Integer")
 
 checkBool :: (Error LVarErr :> es) => Literal -> Eff es Bool
 checkBool = \case
   LBool a -> pure a
-  _ -> throwError (MismatchedType "expected bool")
+  _ -> throwError (MismatchedType "expected Boolean")
 
 -- TODO: currently a literal is the same as a value, but when we add closures, we need to rethink the return type
 interpExpr :: (Error LVarErr :> es, Input :> es, Reader Env :> es) => Expr -> Eff es Literal
