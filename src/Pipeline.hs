@@ -114,7 +114,8 @@ passSelectInstructions = \case
   CVar.Seq stmt tail_ -> X86Var.MkBlock (fromStmt stmt ++ X86Var.getBlock (passSelectInstructions tail_))
  where
   fromAtom = \case
-    Lit a -> X86Var.Imm a
+    Lit (LInt a) -> X86Var.Imm a
+    Lit (LBool a) -> X86Var.Imm (fromEnum a)
     Var a -> X86Var.Var a
 
   fromNulOp Read = [CallQ "read_int" 0]
@@ -278,7 +279,7 @@ colorGraph vertices g =
         nc' =
           HashMap.delete v
             $ flip HashMap.union nc
-              . HashMap.fromList
+            . HashMap.fromList
             $ flip mapMaybe neighbors \to ->
               (to,) . HashSet.insert color <$> (nc HashMap.!? to)
         getNco ncc =

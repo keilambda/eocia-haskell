@@ -9,7 +9,10 @@ module Core
   , Platform (Linux, Darwin)
   , resolveLabel
   , exitSyscall
+  , Literal (LInt, LBool)
   , Atom (Lit, Var)
+  , aint
+  , abool
   , NulOp (Read)
   , UnOp (Neg)
   , BinOp (Add, Sub)
@@ -62,9 +65,24 @@ exitSyscall = \case
   Linux -> 60
   Darwin -> 0x2000001
 
-type Atom :: Type
-data Atom = Lit Int | Var Name
+type Literal :: Type
+data Literal = LInt Int | LBool Bool
   deriving stock (Eq, Show)
+
+instance Pretty Literal where
+  pretty = \case
+    LInt n -> pretty n
+    LBool n -> pretty n
+
+type Atom :: Type
+data Atom = Lit Literal | Var Name
+  deriving stock (Eq, Show)
+
+aint :: Int -> Atom
+aint = Lit . LInt
+
+abool :: Bool -> Atom
+abool = Lit . LBool
 
 instance Pretty Atom where
   pretty = \case
