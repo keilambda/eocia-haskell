@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC "-Wno-incomplete-patterns" #-}
+
 module Stage.LInt (module Stage.LInt) where
 
 import Core (BinOp (..), NulOp (..), UnOp (..))
