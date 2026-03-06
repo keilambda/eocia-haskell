@@ -72,7 +72,8 @@ data Literal = LInt Int | LBool Bool
 instance Pretty Literal where
   pretty = \case
     LInt n -> pretty n
-    LBool n -> pretty n
+    LBool True -> "#t"
+    LBool False -> "#f"
 
 type Atom :: Type
 data Atom = Lit Literal | Var Name
