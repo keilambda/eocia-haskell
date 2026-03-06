@@ -13,14 +13,18 @@ Minimal compiler targeting both Linux and macOS/Darwin platforms. Implements com
 ## Features
 
 - Expression simplification via partial evaluation
-- Stack-based variable allocation
+- Register allocation
 - Instruction selection with peephole optimization
 - Proper stack frame management
 - Call ABI compliance (Linux, Darwin)
 
-### Current status
+### Unimplemented
 
-- Implementing Register allocation
+- Booleans and control flow
+- Vector
+- Garbage collection
+- Top-level functions
+- Closures
 
 ## License
 
