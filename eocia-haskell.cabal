@@ -11,6 +11,7 @@ common defaults
     BlockArguments
     DeriveAnyClass
     MultilineStrings
+    OverloadedStrings
     ViewPatterns
 
 common warnings
@@ -23,7 +24,7 @@ common warnings
     -Wno-safe -Wno-monomorphism-restriction
     -Wno-prepositive-qualified-module -Wno-unused-packages
     -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
-    -fplugin=Effectful.Plugin
+    -Wno-type-defaults -fplugin=Effectful.Plugin
 
 common dependencies
   build-depends:
@@ -67,12 +68,11 @@ executable eocia-haskell
   build-depends:  eocia-haskell
 
 test-suite eocia-haskell-test
-  import:             warnings, defaults, dependencies
-  default-extensions: OverloadedStrings
-  ghc-options:        -O2 -Wno-orphans
-  type:               exitcode-stdio-1.0
-  hs-source-dirs:     test
-  main-is:            Main.hs
+  import:         warnings, defaults, dependencies
+  ghc-options:    -O2 -Wno-orphans
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
   other-modules:
     Arbitrary
     TestCVar
