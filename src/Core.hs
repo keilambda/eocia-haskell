@@ -9,10 +9,13 @@ module Core
   , Platform (Linux, Darwin)
   , resolveLabel
   , exitSyscall
+  , Literal (LInt, LBool)
   , Atom (Lit, Var)
-  , NulOp (Read)
-  , UnOp (Neg)
-  , BinOp (Add, Sub)
+  , aint
+  , abool
+  , NulOp (..)
+  , UnOp (..)
+  , BinOp (..)
   , Reg (..)
   , InstrF (..)
   , callerSaved
@@ -62,9 +65,25 @@ exitSyscall = \case
   Linux -> 60
   Darwin -> 0x2000001
 
-type Atom :: Type
-data Atom = Lit Int | Var Name
+type Literal :: Type
+data Literal = LInt Int | LBool Bool
   deriving stock (Eq, Show)
+
+instance Pretty Literal where
+  pretty = \case
+    LInt n -> pretty n
+    LBool True -> "#t"
+    LBool False -> "#f"
+
+type Atom :: Type
+data Atom = Lit Literal | Var Name
+  deriving stock (Eq, Show)
+
+aint :: Int -> Atom
+aint = Lit . LInt
+
+abool :: Bool -> Atom
+abool = Lit . LBool
 
 instance Pretty Atom where
   pretty = \case
@@ -79,20 +98,23 @@ instance Pretty NulOp where
   pretty Read = "read"
 
 type UnOp :: Type
-data UnOp = Neg
+data UnOp = Neg | Not
   deriving stock (Bounded, Enum, Eq, Show)
 
 instance Pretty UnOp where
   pretty Neg = "-"
+  pretty Not = "not"
 
 type BinOp :: Type
-data BinOp = Add | Sub
+data BinOp = Add | Sub | And | Or
   deriving stock (Bounded, Enum, Eq, Show)
 
 instance Pretty BinOp where
   pretty = \case
     Add -> "+"
     Sub -> "-"
+    And -> "and"
+    Or -> "or"
 
 type Reg :: Type
 data Reg = RSP | RBP | RAX | RBX | RCX | RDX | RSI | RDI | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15
@@ -129,6 +151,9 @@ data InstrF arg
   = AddQ arg arg
   | SubQ arg arg
   | NegQ arg
+  | AndQ arg arg
+  | OrQ arg arg
+  | XorQ arg arg
   | MovQ arg arg
   | PushQ arg
   | PopQ arg
@@ -143,6 +168,9 @@ instance (Pretty arg) => Pretty (InstrF arg) where
     AddQ src dst -> "addq" <+> pretty src <> comma <+> pretty dst
     SubQ src dst -> "subq" <+> pretty src <> comma <+> pretty dst
     NegQ arg -> "negq" <+> pretty arg
+    AndQ src dst -> "andq" <+> pretty src <> comma <+> pretty dst
+    OrQ src dst -> "orq" <+> pretty src <> comma <+> pretty dst
+    XorQ src dst -> "xorq" <+> pretty src <> comma <+> pretty dst
     MovQ src dst -> "movq" <+> pretty src <> comma <+> pretty dst
     PushQ arg -> "pushq" <+> pretty arg
     PopQ arg -> "popq" <+> pretty arg

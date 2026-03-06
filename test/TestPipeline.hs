@@ -62,7 +62,7 @@ groupPassUniquify =
             (Left (LVar.UnboundVariable _), Left (LVar.UnboundVariable _)) -> True -- pass on invalid AST
             (_, uniq') -> orig == uniq'
     , testCase "preserves semantics" do
-        let expr = LVar.Let "x" (LVar.Lit 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
+        let expr = LVar.Let "x" (LVar.int 1) (LVar.Let "x" (LVar.Var "x") (LVar.Var "x"))
             expr' = fromRight' . runPureEff . runErrorNoCallStack . runGensymPure @Int 0 $ passUniquify expr
         renderText expr' @?= "(let [x.0 1] (let [x.1 x.0] x.1))"
     , testCase "does not uniquify unbound variables" do
@@ -76,16 +76,16 @@ groupPassRemoveComplexOperands =
   testGroup
     "passRemoveComplexOperands"
     [ testCase "breaks down complex operands into monadic form" do
-        let expr = LVar.Let "x" (LVar.add (LVar.Lit 42) (LVar.neg (LVar.Lit 10))) (LVar.add (LVar.Var "x") (LVar.Lit 10))
+        let expr = LVar.Let "x" (LVar.add (LVar.int 42) (LVar.neg (LVar.int 10))) (LVar.add (LVar.Var "x") (LVar.int 10))
         runPureEff (runGensymPure @Int 1 (passRemoveComplexOperands expr))
           @?= LVarMon.Let
             "x"
-            (LVarMon.Let "tmp.1" (LVarMon.UnApp Neg (Lit 10)) (LVarMon.BinApp Add (Lit 42) (Var "tmp.1")))
-            (LVarMon.BinApp Add (Var "x") (Lit 10))
+            (LVarMon.Let "tmp.1" (LVarMon.UnApp Neg (aint 10)) (LVarMon.BinApp Add (aint 42) (Var "tmp.1")))
+            (LVarMon.BinApp Add (Var "x") (aint 10))
     , testCase "does not simplify already simple expression" do
-        let expr = LVar.Let "a" (LVar.Lit 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
+        let expr = LVar.Let "a" (LVar.int 42) (LVar.Let "b" (LVar.Var "a") (LVar.Var "b"))
         runPureEff (runGensymPure @Int 1 (passRemoveComplexOperands expr))
-          @?= LVarMon.Let "a" (LVarMon.Atom (Lit 42)) (LVarMon.Let "b" (LVarMon.Atom (Var "a")) (LVarMon.Atom (Var "b")))
+          @?= LVarMon.Let "a" (LVarMon.Atom (aint 42)) (LVarMon.Let "b" (LVarMon.Atom (Var "a")) (LVarMon.Atom (Var "b")))
     ]
 
 groupPassExplicateControl :: TestTree
@@ -94,18 +94,18 @@ groupPassExplicateControl =
     "passExplicateControl"
     [ testCase "converts expressions into statements ending with a return" do
         let let_ = LVarMon.Let
-            lit = LVarMon.Atom . Lit
-            clit = CVar.Atom . Lit
+            int = LVarMon.Atom . aint
+            cint = CVar.Atom . aint
             expr =
               let_
                 "y"
-                (let_ "x.1" (lit 20) (let_ "x.2" (lit 22) (LVarMon.BinApp Add (Var "x.1") (Var "x.2"))))
+                (let_ "x.1" (int 20) (let_ "x.2" (int 22) (LVarMon.BinApp Add (Var "x.1") (Var "x.2"))))
                 (LVarMon.Atom (Var "y"))
         passExplicateControl expr
           @?= CVar.Seq
-            (CVar.Assign "x.1" (clit 20))
+            (CVar.Assign "x.1" (cint 20))
             ( CVar.Seq
-                (CVar.Assign "x.2" (clit 22))
+                (CVar.Assign "x.2" (cint 22))
                 ( CVar.Seq
                     (CVar.Assign "y" (CVar.BinApp Add (Var "x.1") (Var "x.2")))
                     (CVar.Return (CVar.Atom (Var "y")))
@@ -120,7 +120,7 @@ groupPassSelectInstructions =
     [ testCase "maps to x86 with vars instructions" do
         let expr =
               CVar.Seq
-                (CVar.Assign "x" (CVar.BinApp Add (Lit 32) (Lit 10)))
+                (CVar.Assign "x" (CVar.BinApp Add (aint 32) (aint 10)))
                 (CVar.Seq (CVar.Assign "y" (CVar.UnApp Neg (Var "x"))) (CVar.Return (CVar.Atom (Var "y"))))
         passSelectInstructions expr
           @?= X86Var.MkBlock
@@ -137,7 +137,7 @@ groupPassSelectInstructions =
     , testCase "optimizes compound assignment (left)" do
         let expr =
               CVar.Seq
-                (CVar.Assign "x" (CVar.BinApp Add (Var "x") (Lit 42)))
+                (CVar.Assign "x" (CVar.BinApp Add (Var "x") (aint 42)))
                 (CVar.Return (CVar.Atom (Var "x")))
         passSelectInstructions expr
           @?= X86Var.MkBlock
@@ -147,7 +147,7 @@ groupPassSelectInstructions =
     , testCase "optimizes compound assignment (right)" do
         let expr =
               CVar.Seq
-                (CVar.Assign "y" (CVar.BinApp Add (Lit 42) (Var "y")))
+                (CVar.Assign "y" (CVar.BinApp Add (aint 42) (Var "y")))
                 (CVar.Return (CVar.Atom (Var "y")))
         passSelectInstructions expr
           @?= X86Var.MkBlock
@@ -173,11 +173,14 @@ groupPassSelectInstructions =
   reg = X86Var.Reg
   var = X86Var.Var
   fromAtom = \case
-    Lit a -> X86Var.Imm a
+    Lit (LInt a) -> X86Var.Imm a
+    Lit (LBool a) -> X86Var.Imm (fromEnum a)
     Var a -> X86Var.Var a
   fromOp = \case
     Add -> AddQ
     Sub -> SubQ
+    And -> AndQ
+    Or -> OrQ
 
 groupPassAllocateRegisters :: TestTree
 groupPassAllocateRegisters =

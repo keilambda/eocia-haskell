@@ -1,6 +1,6 @@
-type ::= Integer
+type ::= Integer | Boolean
 
-expr ::= int
+expr ::= int | bool
   | (read)
   | (- expr)
   | (+ expr expr)
