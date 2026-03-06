@@ -1,6 +1,6 @@
 module TestCVar (tests) where
 
-import Core (Atom (..), BinOp (..), UnOp (..), aint)
+import Core (Atom (..), BinOp (..), UnOp (..), abool, aint)
 import Pre
 import Stage.CVar
 import Test.Tasty
@@ -18,6 +18,7 @@ groupPrettyTail =
     "Tail"
     [ testCase "return" do
         renderText (Return (Atom (aint 42))) @?= "return 42;"
+        renderText (Return (Atom (abool True))) @?= "return #t;"
     , testCase "assignment" do
         renderText (Assign "x" (Atom (aint 42))) @?= "x = 42;"
     , testCase "sequence binop" do

@@ -21,6 +21,7 @@ groupInterpreter =
     "Interpreter"
     [ testCase "lit" do
         Lit (LInt 42) `shouldEvalTo` Right (LInt 42)
+        Lit (LBool True) `shouldEvalTo` Right (LBool True)
     , testCase "arithmetic" do
         add (Lit (LInt 3)) (Lit (LInt 2)) `shouldEvalTo` Right (LInt 5)
         sub (Lit (LInt 3)) (Lit (LInt 2)) `shouldEvalTo` Right (LInt 1)
@@ -55,7 +56,7 @@ groupPretty =
   testGroup
     "Pretty printer"
     [ testCase "let expression" do
-        renderText (Let "x" (Lit (LInt 42)) (Var "x")) @?= "(let [x 42] x)"
+        renderText (Let "x" (Lit (LBool True)) (Var "x")) @?= "(let [x #t] x)"
     , testCase "complex let expression" do
         let expr = Let "x" (add (Lit (LInt 1)) (Lit (LInt 2))) (Let "y" (sub (Var "x") (Lit (LInt 1))) (add (Var "x") (Var "y")))
         renderText expr @?= "(let [x (+ 1 2)] (let [y (- x 1)] (+ x y)))"
