@@ -2,7 +2,7 @@
 
 module Stage.LVar (module Stage.LVar) where
 
-import Core (BinOp (..), Literal (..), Name, NulOp (..), UnOp (..), abool, aint)
+import Core (BinOp (..), Literal (..), Name, NulOp (..), UnOp (..))
 import Core.Input
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text (pattern Empty)
@@ -87,8 +87,11 @@ interpExpr = \case
         "#t" -> pure (LBool True)
         _ -> throwError (InvalidReadInput str)
   UnApp Neg a -> LInt . negate <$> (checkInt =<< interpExpr a)
+  UnApp Not a -> LBool . not <$> (checkBool =<< interpExpr a)
   BinApp Add a b -> fmap LInt $ (+) <$> (checkInt =<< interpExpr a) <*> (checkInt =<< interpExpr b)
   BinApp Sub a b -> fmap LInt $ (-) <$> (checkInt =<< interpExpr a) <*> (checkInt =<< interpExpr b)
+  BinApp And a b -> fmap LBool $ (&&) <$> (checkBool =<< interpExpr a) <*> (checkBool =<< interpExpr b)
+  BinApp Or a b -> fmap LBool $ (||) <$> (checkBool =<< interpExpr a) <*> (checkBool =<< interpExpr b)
 
 runInterpExprConst :: Text -> Expr -> Either LVarErr Literal
 runInterpExprConst text = runPureEff . runInputConst text . runErrorNoCallStack . runReader mempty . interpExpr

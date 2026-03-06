@@ -120,10 +120,15 @@ passSelectInstructions = \case
 
   fromNulOp Read = [CallQ "read_int" 0]
 
-  fromUnOp Neg a =
-    [ MovQ (fromAtom a) (X86Var.Reg RAX)
-    , NegQ (X86Var.Reg RAX)
-    ]
+  fromUnOp op a = case op of
+    Neg ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , NegQ (X86Var.Reg RAX)
+      ]
+    Not ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , XorQ (X86Var.Imm 1) (X86Var.Reg RAX)
+      ]
 
   fromBinOp op a b = case op of
     Add ->
@@ -133,6 +138,14 @@ passSelectInstructions = \case
     Sub ->
       [ MovQ (fromAtom a) (X86Var.Reg RAX)
       , SubQ (fromAtom b) (X86Var.Reg RAX)
+      ]
+    And ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , AndQ (fromAtom b) (X86Var.Reg RAX)
+      ]
+    Or ->
+      [ MovQ (fromAtom a) (X86Var.Reg RAX)
+      , OrQ (fromAtom b) (X86Var.Reg RAX)
       ]
 
   rax2Var name = [MovQ (X86Var.Reg RAX) (X86Var.Var name)]
@@ -144,9 +157,13 @@ passSelectInstructions = \case
     CVar.BinApp op (Var name') rhs | name' == name -> case op of
       Add -> [AddQ (fromAtom rhs) (X86Var.Var name)]
       Sub -> [SubQ (fromAtom rhs) (X86Var.Var name)]
+      And -> [AndQ (fromAtom rhs) (X86Var.Var name)]
+      Or -> [OrQ (fromAtom rhs) (X86Var.Var name)]
     CVar.BinApp op lhs (Var name') | name' == name -> case op of
       Add -> [AddQ (fromAtom lhs) (X86Var.Var name)]
       Sub -> [SubQ (fromAtom lhs) (X86Var.Var name)]
+      And -> [AndQ (fromAtom lhs) (X86Var.Var name)]
+      Or -> [OrQ (fromAtom lhs) (X86Var.Var name)]
     CVar.BinApp op a b -> case op of
       Add ->
         [ MovQ (fromAtom a) (X86Var.Var name)
@@ -155,6 +172,14 @@ passSelectInstructions = \case
       Sub ->
         [ MovQ (fromAtom a) (X86Var.Var name)
         , SubQ (fromAtom b) (X86Var.Var name)
+        ]
+      And ->
+        [ MovQ (fromAtom a) (X86Var.Var name)
+        , AndQ (fromAtom b) (X86Var.Var name)
+        ]
+      Or ->
+        [ MovQ (fromAtom a) (X86Var.Var name)
+        , OrQ (fromAtom b) (X86Var.Var name)
         ]
 
 type Liveness :: Type
@@ -193,6 +218,9 @@ uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace . snd $ mapAccumR live
     MovQ _ tgt -> argSet tgt
     AddQ _ tgt -> argSet tgt
     SubQ _ tgt -> argSet tgt
+    AndQ _ tgt -> argSet tgt
+    OrQ _ tgt -> argSet tgt
+    XorQ _ tgt -> argSet tgt
     NegQ tgt -> argSet tgt
     CallQ _ _ -> HashSet.fromList [X86Var.Reg reg | reg <- callerSaved]
     _ -> HashSet.empty
@@ -201,6 +229,9 @@ uncoverLive prev (X86Var.MkBlock block) = MkLivenessTrace . snd $ mapAccumR live
     MovQ src _ -> argSet src
     AddQ src tgt -> argSet src <> argSet tgt
     SubQ src tgt -> argSet src <> argSet tgt
+    AndQ src tgt -> argSet src <> argSet tgt
+    OrQ src tgt -> argSet src <> argSet tgt
+    XorQ src tgt -> argSet src <> argSet tgt
     NegQ tgt -> argSet tgt
     CallQ _ n -> HashSet.fromList [X86Var.Reg reg | reg <- take n argumentPassing]
     _ -> HashSet.empty
@@ -244,6 +275,9 @@ buildInterference (MkLivenessTrace trace) = Undirected.edges (concatMap getEdges
   writes = \case
     AddQ _ tgt -> HashSet.singleton tgt
     SubQ _ tgt -> HashSet.singleton tgt
+    AndQ _ tgt -> HashSet.singleton tgt
+    OrQ _ tgt -> HashSet.singleton tgt
+    XorQ _ tgt -> HashSet.singleton tgt
     NegQ tgt -> HashSet.singleton tgt
     MovQ _ tgt -> HashSet.singleton tgt
     PushQ _ -> HashSet.singleton (X86Var.Reg RSP)
@@ -299,6 +333,9 @@ uncoverLocals (X86Var.MkBlock xs) = nubOrd $ concatMap vars xs
   vars = \case
     AddQ src tgt -> var src ++ var tgt
     SubQ src tgt -> var src ++ var tgt
+    AndQ src tgt -> var src ++ var tgt
+    OrQ src tgt -> var src ++ var tgt
+    XorQ src tgt -> var src ++ var tgt
     NegQ src -> var src
     MovQ src tgt -> var src ++ var tgt
     PushQ tgt -> var tgt
@@ -316,6 +353,9 @@ passAllocateRegisters ig block@(X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
     AddQ src tgt -> AddQ <$> alloc src <*> alloc tgt
     SubQ src tgt -> SubQ <$> alloc src <*> alloc tgt
+    AndQ src tgt -> AndQ <$> alloc src <*> alloc tgt
+    OrQ src tgt -> OrQ <$> alloc src <*> alloc tgt
+    XorQ src tgt -> XorQ <$> alloc src <*> alloc tgt
     NegQ src -> NegQ <$> alloc src
     MovQ src tgt -> MovQ <$> alloc src <*> alloc tgt
     PushQ tgt -> PushQ <$> alloc tgt
@@ -351,6 +391,9 @@ passAssignHomes (X86Var.MkBlock xs) =
   X86Int.MkBlock <$> for xs \case
     AddQ src tgt -> AddQ <$> spill src <*> spill tgt
     SubQ src tgt -> SubQ <$> spill src <*> spill tgt
+    AndQ src tgt -> AndQ <$> spill src <*> spill tgt
+    OrQ src tgt -> OrQ <$> spill src <*> spill tgt
+    XorQ src tgt -> XorQ <$> spill src <*> spill tgt
     NegQ tgt -> NegQ <$> spill tgt
     MovQ src tgt -> MovQ <$> spill src <*> spill tgt
     PushQ tgt -> PushQ <$> spill tgt
@@ -388,6 +431,18 @@ passPatchInstructions (X86Int.MkBlock xs) = X86Int.MkBlock (concatMap patch xs)
     SubQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
       [ MovQ lhs (X86Int.Reg RAX)
       , SubQ (X86Int.Reg RAX) rhs
+      ]
+    AndQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , AndQ (X86Int.Reg RAX) rhs
+      ]
+    OrQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , OrQ (X86Int.Reg RAX) rhs
+      ]
+    XorQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
+      [ MovQ lhs (X86Int.Reg RAX)
+      , XorQ (X86Int.Reg RAX) rhs
       ]
     MovQ lhs@(X86Int.Deref _ _) rhs@(X86Int.Deref _ _) ->
       [ MovQ lhs (X86Int.Reg RAX)

@@ -179,6 +179,8 @@ groupPassSelectInstructions =
   fromOp = \case
     Add -> AddQ
     Sub -> SubQ
+    And -> AndQ
+    Or -> OrQ
 
 groupPassAllocateRegisters :: TestTree
 groupPassAllocateRegisters =
