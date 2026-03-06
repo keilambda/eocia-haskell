@@ -19,6 +19,7 @@ module Core
   , calleeSaved
   , argumentPassing
   , module Core.Gensym
+  , hostPlatform
   )
 where
 
@@ -26,6 +27,7 @@ import Core.Gensym
 import Data.HashSet qualified as HashSet
 import Data.String (IsString)
 import Pre
+import System.Info qualified
 
 type Name :: Type
 newtype Name = MkName {getName :: Text}
@@ -51,6 +53,12 @@ lblConclusion = "conclusion"
 type Platform :: Type
 data Platform = Linux | Darwin
   deriving stock (Bounded, Enum, Show)
+
+hostPlatform :: Maybe Platform
+hostPlatform = case System.Info.os of
+  "darwin" -> Just Darwin
+  "linux" -> Just Linux
+  _ -> Nothing
 
 resolveLabel :: Platform -> Label -> Label
 resolveLabel = \case
