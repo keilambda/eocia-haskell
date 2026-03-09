@@ -22,6 +22,10 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
+
+*.s
+out/main
+
 .direnv
 .envrc
 result
