@@ -62,6 +62,9 @@ instance Arbitrary LVar.Expr where
             elements [LVar.add a b, LVar.sub a b]
         ]
 
+instance Arbitrary Literal where
+  arbitrary = oneof [LInt <$> arbitrary, LBool <$> arbitrary]
+
 instance Arbitrary Atom where
   arbitrary = oneof [Lit <$> arbitrary, Var <$> arbitrary]
 
